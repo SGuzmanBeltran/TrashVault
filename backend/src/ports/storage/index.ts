@@ -1,1 +1,1 @@
-export { StoragePort, StorageConfig } from './Storage.port.js';
+export { StoragePort, StorageConfig } from './Storage.port';

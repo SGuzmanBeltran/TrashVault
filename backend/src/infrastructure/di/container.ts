@@ -1,5 +1,6 @@
-import { MinioStorageAdapter } from '../../adapters/storage/MinioStorage.adapter.js';
-import { StoragePort, StorageConfig } from '../../ports/storage/Storage.port.js';
+import { StorageConfig, StoragePort } from '../../ports/storage/Storage.port';
+
+import { MinioStorageAdapter } from '../../adapters/storage/MinioStorage.adapter';
 
 let storageInstance: StoragePort | null = null;
 

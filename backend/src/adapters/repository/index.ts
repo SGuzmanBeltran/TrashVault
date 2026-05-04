@@ -1,0 +1,1 @@
+export { DrizzleFileRepositoryAdapter } from './DrizzleFileRepository.adapter';

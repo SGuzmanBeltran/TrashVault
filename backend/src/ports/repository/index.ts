@@ -1,0 +1,1 @@
+export { FileRepositoryPort, NewFile, FileEntity } from './FileRepository.port';
