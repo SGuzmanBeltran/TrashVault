@@ -1,0 +1,1 @@
+export { MinioStorageAdapter } from './MinioStorage.adapter.js';
