@@ -1,8 +1,23 @@
 import 'dotenv/config';
+import { Elysia } from 'elysia';
+import { fileRoutes, folderRoutes } from './infrastructure/http';
+import { registerStorage, registerFileRepository, registerFolderRepository } from './infrastructure/di/container';
 
-import { Elysia } from "elysia";
+registerStorage({
+  endpoint: process.env.MINIO_ENDPOINT!,
+  accessKey: process.env.MINIO_ACCESS_KEY!,
+  secretKey: process.env.MINIO_SECRET_KEY!,
+  bucket: process.env.MINIO_BUCKET!,
+});
 
-const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
+registerFileRepository();
+registerFolderRepository();
+
+const app = new Elysia()
+  .use(fileRoutes)
+  .use(folderRoutes)
+  .get('/', () => 'Hello Elysia')
+  .listen(3000);
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
