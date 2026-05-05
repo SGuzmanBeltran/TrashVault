@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-surface: #0a0a0f;
+  --color-surface-raised: #12121a;
+  --color-surface-overlay: #1a1a25;
+  --color-surface-border: #252535;
+  --color-surface-border-subtle: #1e1e2e;
+
+  --color-surface-fg: #e8e8f0;
+  --color-surface-fg-muted: #8888a0;
+  --color-surface-fg-subtle: #55556a;
+
+  --color-accent: #22d3ee;
+  --color-accent-soft: #22d3ee18;
+  --color-accent-muted: #22d3ee40;
+  --color-accent-fg: #0a0a0f;
+
+  --color-success: #34d399;
+  --color-success-soft: #34d39918;
+  --color-warning: #fbbf24;
+  --color-warning-soft: #fbbf2418;
+  --color-danger: #f87171;
+  --color-danger-soft: #f8717118;
+}
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-surface-border) transparent;
+  }
+
+  ::selection {
+    background-color: var(--color-accent-muted);
+    color: var(--color-surface-fg);
+  }
+}
+
+@layer utilities {
+  .accent-cyan {
+    --color-accent: #22d3ee;
+    --color-accent-soft: #22d3ee18;
+    --color-accent-muted: #22d3ee40;
+    --color-accent-fg: #0a0a0f;
+  }
+
+  .accent-violet {
+    --color-accent: #a78bfa;
+    --color-accent-soft: #a78bfa18;
+    --color-accent-muted: #a78bfa40;
+    --color-accent-fg: #0a0a0f;
+  }
+
+  .accent-orange {
+    --color-accent: #fb923c;
+    --color-accent-soft: #fb923c18;
+    --color-accent-muted: #fb923c40;
+    --color-accent-fg: #0a0a0f;
+  }
+
+  .animate-in {
+    animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-stagger-1 { animation-delay: 0.05s; }
+  .animate-stagger-2 { animation-delay: 0.1s; }
+  .animate-stagger-3 { animation-delay: 0.15s; }
+  .animate-stagger-4 { animation-delay: 0.2s; }
+  .animate-stagger-5 { animation-delay: 0.25s; }
+  .animate-stagger-6 { animation-delay: 0.3s; }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-overlay) 25%,
+    var(--color-surface-border) 50%,
+    var(--color-surface-overlay) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
