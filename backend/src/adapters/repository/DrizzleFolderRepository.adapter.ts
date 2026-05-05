@@ -10,8 +10,10 @@ export class DrizzleFolderRepositoryAdapter implements FolderRepositoryPort {
     return result[0];
   }
 
-  async findById(id: string): Promise<FolderEntity | null> {
-    const result = await db.select().from(folders).where(eq(folders.id, id));
+  async findById(id: string, userId: string): Promise<FolderEntity | null> {
+    const result = await db.select().from(folders).where(
+      and(eq(folders.id, id), eq(folders.userId, userId))
+    );
     return result[0] || null;
   }
 
@@ -24,7 +26,9 @@ export class DrizzleFolderRepositoryAdapter implements FolderRepositoryPort {
     );
   }
 
-  async delete(id: string): Promise<void> {
-    await db.delete(folders).where(eq(folders.id, id));
+  async delete(id: string, userId: string): Promise<void> {
+    await db.delete(folders).where(
+      and(eq(folders.id, id), eq(folders.userId, userId))
+    );
   }
 }

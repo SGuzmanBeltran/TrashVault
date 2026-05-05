@@ -14,7 +14,7 @@ export interface FileEntity extends NewFile {}
 
 export interface FileRepositoryPort {
   create(data: NewFile): Promise<FileEntity>;
-  findById(id: string): Promise<FileEntity | null>;
+  findById(id: string, userId: string): Promise<FileEntity | null>;
   findByUserId(userId: string, folderId?: string | null): Promise<FileEntity[]>;
-  delete(id: string): Promise<void>;
+  delete(id: string, userId: string): Promise<void>;
 }

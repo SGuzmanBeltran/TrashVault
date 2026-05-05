@@ -10,7 +10,7 @@ export interface FolderEntity extends NewFolder {}
 
 export interface FolderRepositoryPort {
   create(data: NewFolder): Promise<FolderEntity>;
-  findById(id: string): Promise<FolderEntity | null>;
+  findById(id: string, userId: string): Promise<FolderEntity | null>;
   findByUserId(userId: string, parentId?: string | null): Promise<FolderEntity[]>;
-  delete(id: string): Promise<void>;
+  delete(id: string, userId: string): Promise<void>;
 }

@@ -14,7 +14,7 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
       name: file.name,
       mimeType: file.type,
       size: buffer.byteLength,
-      bucket: process.env.MINIO_BUCKET!,
+      bucket: process.env.R2_BUCKET,
       key,
       folderId: body.folderId || null,
       buffer,

@@ -10,8 +10,10 @@ export class DrizzleFileRepositoryAdapter implements FileRepositoryPort {
     return result[0];
   }
 
-  async findById(id: string): Promise<FileEntity | null> {
-    const result = await db.select().from(files).where(eq(files.id, id));
+  async findById(id: string, userId: string): Promise<FileEntity | null> {
+    const result = await db.select().from(files).where(
+      and(eq(files.id, id), eq(files.userId, userId))
+    );
     return result[0] || null;
   }
 
@@ -24,7 +26,9 @@ export class DrizzleFileRepositoryAdapter implements FileRepositoryPort {
     );
   }
 
-  async delete(id: string): Promise<void> {
-    await db.delete(files).where(eq(files.id, id));
+  async delete(id: string, userId: string): Promise<void> {
+    await db.delete(files).where(
+      and(eq(files.id, id), eq(files.userId, userId))
+    );
   }
 }
