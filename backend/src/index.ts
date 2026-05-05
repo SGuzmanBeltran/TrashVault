@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import { authPlugin } from './infrastructure/http/auth.plugin';
 import { fileRoutes, folderRoutes } from './infrastructure/http';
 import { registerFileRepository, registerFolderRepository, registerStorage } from './infrastructure/di/container';
 
@@ -17,6 +18,7 @@ registerFileRepository();
 registerFolderRepository();
 
 const app = new Elysia()
+  .use(authPlugin)
   .use(fileRoutes)
   .use(folderRoutes)
   .get('/', () => 'Hello Elysia')
