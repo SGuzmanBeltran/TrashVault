@@ -8,7 +8,7 @@ Google Drive-like, self-hosted.
 |---|---|
 | Runtime | Bun |
 | Backend | Elysia (TypeScript) |
-| Storage | MinIO (Docker) |
+| Storage | Cloudflare R2 (S3-compatible) |
 | Frontend | Vue 3 + Vite + Pinia + Vue Router |
 | DB | Drizzle + SQLite |
 | Styling | Tailwind CSS 4 |
@@ -21,7 +21,7 @@ trashvault/
 │   ├── src/
 │   │   ├── index.ts
 │   │   ├── infrastructure/
-│   │   │   ├── storage/       # MinIO adapter
+│   │   │   ├── storage/       # S3/R2 adapter
 │   │   │   └── http/          # Elysia routes
 │   │   └── db/                # Drizzle schema
 │   ├── package.json
@@ -56,7 +56,7 @@ files {
   mimeType: text
   size: integer
   bucket: text
-  key: text (MinIO object key)
+  key: text (S3 object key)
   folderId: text | null
   createdAt: integer
 }
@@ -77,6 +77,16 @@ folders {
 - [ ] Frontend: login + navegador de archivos
 - [ ] Upload de archivos (drag & drop)
 
+### Zero-Trust Encryption
+
+- [ ] Client-side encryption: derivar clave de la contraseña del usuario (PBKDF2/Argon2)
+- [ ] Arquitectura KEK + DEK: password encripta una clave maestra, la clave maestra encripta los archivos
+- [ ] Encriptar archivos en el browser antes de subir
+- [ ] Almacenar solo bytes cifrados en MinIO/R2
+- [ ] Descifrar en el cliente al descargar
+- [ ] Re-encriptar DEK al cambiar password (sin tocar los archivos)
+- [ ] Nota: esto hace que ni siquiera el admin del server pueda ver el contenido
+
 ## Semana 2 — Polish
 
 - [ ] Preview de imágenes
@@ -94,8 +104,19 @@ bun run dev
 # Frontend
 bun run dev
 
-# MinIO console
-# http://localhost:9001
+# R2 Console
+# https://dash.cloudflare.com > R2
+
+## Variables de entorno
+
+```env
+# backend/.env
+DATABASE_URL="postgresql://..."
+R2_ACCOUNT_ID=your-account-id
+R2_ACCESS_KEY_ID=your-access-key
+R2_SECRET_ACCESS_KEY=your-secret-key
+R2_BUCKET=trashvault
+R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
 ```
 
 ## MinIO Setup (sin Docker)

@@ -6,6 +6,7 @@ export interface StoragePort {
 }
 
 export interface StorageConfig {
+  provider?: 'minio' | 's3';
   endpoint: string;
   accessKey: string;
   secretKey: string;

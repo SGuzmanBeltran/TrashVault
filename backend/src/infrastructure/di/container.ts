@@ -1,18 +1,19 @@
-import { MinioStorageAdapter } from '../../adapters/storage/MinioStorage.adapter';
+import { StorageConfig, StoragePort } from '../../ports/storage/Storage.port';
+
 import { DrizzleFileRepositoryAdapter } from '../../adapters/repository/DrizzleFileRepository.adapter';
 import { DrizzleFolderRepositoryAdapter } from '../../adapters/repository/DrizzleFolderRepository.adapter';
-import { StoragePort, StorageConfig } from '../../ports/storage/Storage.port';
 import { FileRepositoryPort } from '../../ports/repository/FileRepository.port';
-import { FolderRepositoryPort } from '../../ports/repository/FolderRepository.port';
 import { FileService } from '../../services/FileService.service';
+import { FolderRepositoryPort } from '../../ports/repository/FolderRepository.port';
 import { FolderService } from '../../services/FolderService.service';
+import { S3StorageAdapter } from '../../adapters/storage/S3Storage.adapter';
 
 let storageInstance: StoragePort | null = null;
 let fileRepositoryInstance: FileRepositoryPort | null = null;
 let folderRepositoryInstance: FolderRepositoryPort | null = null;
 
 export function registerStorage(config: StorageConfig): void {
-  storageInstance = new MinioStorageAdapter(config);
+    storageInstance = new S3StorageAdapter(config);
 }
 
 export function getStorage(): StoragePort {
