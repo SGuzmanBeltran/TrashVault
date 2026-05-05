@@ -20,15 +20,15 @@ export class FolderService {
     });
   }
 
-  async getFolder(id: string): Promise<FolderEntity | null> {
-    return this.folderRepository.findById(id);
+  async getFolder(id: string, userId: string): Promise<FolderEntity | null> {
+    return this.folderRepository.findById(id, userId);
   }
 
   async getFoldersByUser(userId: string, parentId?: string | null): Promise<FolderEntity[]> {
     return this.folderRepository.findByUserId(userId, parentId);
   }
 
-  async deleteFolder(id: string): Promise<void> {
-    await this.folderRepository.delete(id);
+  async deleteFolder(id: string, userId: string): Promise<void> {
+    await this.folderRepository.delete(id, userId);
   }
 }

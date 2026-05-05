@@ -35,24 +35,24 @@ export class FileService {
     });
   }
 
-  async getFile(id: string): Promise<FileEntity | null> {
-    return this.fileRepository.findById(id);
+  async getFile(id: string, userId: string): Promise<FileEntity | null> {
+    return this.fileRepository.findById(id, userId);
   }
 
   async getFilesByUser(userId: string, folderId?: string | null): Promise<FileEntity[]> {
     return this.fileRepository.findByUserId(userId, folderId);
   }
 
-  async deleteFile(id: string): Promise<void> {
-    const file = await this.fileRepository.findById(id);
+  async deleteFile(id: string, userId: string): Promise<void> {
+    const file = await this.fileRepository.findById(id, userId);
     if (!file) return;
 
     await this.storage.delete(file.key);
-    await this.fileRepository.delete(id);
+    await this.fileRepository.delete(id, userId);
   }
 
-  async getDownloadUrl(id: string, expiresIn: number = 3600): Promise<string | null> {
-    const file = await this.fileRepository.findById(id);
+  async getDownloadUrl(id: string, userId: string, expiresIn: number = 3600): Promise<string | null> {
+    const file = await this.fileRepository.findById(id, userId);
     if (!file) return null;
 
     return this.storage.getSignedUrl(file.key, expiresIn);

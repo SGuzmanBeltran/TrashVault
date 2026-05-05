@@ -1,13 +1,8 @@
 import { Elysia } from 'elysia';
 import { createFileService } from '../di/container';
-import { authPlugin } from './auth.plugin';
 import { randomUUID } from 'crypto';
 
 export const fileRoutes = new Elysia({ prefix: '/files' })
-  .use(authPlugin)
-  .onBeforeHandle(({ user }) => {
-    if (!user) return new Response('Unauthorized', { status: 401 });
-  })
   .post('/upload', async ({ user, file, body }) => {
     const fileService = createFileService();
     const buffer = await file.arrayBuffer();
@@ -15,7 +10,7 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
 
     return fileService.createFile({
       id: randomUUID(),
-      userId: user!.id,
+      userId: user.id,
       name: file.name,
       mimeType: file.type,
       size: buffer.byteLength,
@@ -25,24 +20,33 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
       buffer,
     });
   }, {
-    type: 'multipart'
+    type: 'multipart',
+    auth: true,
   })
   .get('/', async ({ user, query }) => {
     const fileService = createFileService();
-    return fileService.getFilesByUser(user!.id, query.folderId);
+    return fileService.getFilesByUser(user.id, query.folderId);
+  }, {
+    auth: true,
   })
   .get('/:id', async ({ user, params }) => {
     const fileService = createFileService();
-    return fileService.getFile(params.id, user!.id);
+    return fileService.getFile(params.id, user.id);
+  }, {
+    auth: true,
   })
   .get('/:id/download', async ({ user, params }) => {
     const fileService = createFileService();
-    const url = await fileService.getDownloadUrl(params.id, user!.id);
+    const url = await fileService.getDownloadUrl(params.id, user.id);
     if (!url) return new Response('File not found', { status: 404 });
     return { url };
+  }, {
+    auth: true,
   })
   .delete('/:id', async ({ user, params }) => {
     const fileService = createFileService();
-    await fileService.deleteFile(params.id, user!.id);
+    await fileService.deleteFile(params.id, user.id);
     return { success: true };
+  }, {
+    auth: true,
   });
