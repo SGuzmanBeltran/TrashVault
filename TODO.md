@@ -72,20 +72,21 @@ folders {
 
 ## Semana 1 — MVP
 
-- [ ] API upload/download/list/delete
-- [ ] Autenticación simple (Better Auth)
+- [x] API upload/download/list/delete
+- [x] Autenticación simple (Better Auth)
 - [ ] Frontend: login + navegador de archivos
 - [ ] Upload de archivos (drag & drop)
 
 ### Zero-Trust Encryption
 
-- [ ] Client-side encryption: derivar clave de la contraseña del usuario (PBKDF2/Argon2)
-- [ ] Arquitectura KEK + DEK: password encripta una clave maestra, la clave maestra encripta los archivos
+- [ ] Auth con password (Better Auth) — misma password para login y KEK
+- [ ] Client-side encryption: derivar KEK de la password (PBKDF2/Argon2)
+- [ ] Arquitectura KEK + DEK: password descifra la DEK, la DEK encripta los archivos
 - [ ] Encriptar archivos en el browser antes de subir
 - [ ] Almacenar solo bytes cifrados en MinIO/R2
 - [ ] Descifrar en el cliente al descargar
 - [ ] Re-encriptar DEK al cambiar password (sin tocar los archivos)
-- [ ] Nota: esto hace que ni siquiera el admin del server pueda ver el contenido
+- [ ] Nota: la misma password hace auth (server) y crypto (cliente), pero de formas distintas (hash vs PBKDF2). Si olvida la password, pierde los datos.
 
 ## Semana 2 — Polish
 
