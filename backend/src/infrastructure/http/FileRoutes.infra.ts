@@ -1,16 +1,21 @@
 import { Elysia } from 'elysia';
 import { createFileService } from '../di/container';
+import { authPlugin } from './auth.plugin';
 import { randomUUID } from 'crypto';
 
 export const fileRoutes = new Elysia({ prefix: '/files' })
-  .post('/upload', async ({ file, body }) => {
+  .use(authPlugin)
+  .onBeforeHandle(({ user }) => {
+    if (!user) return new Response('Unauthorized', { status: 401 });
+  })
+  .post('/upload', async ({ user, file, body }) => {
     const fileService = createFileService();
     const buffer = await file.arrayBuffer();
     const key = `files/${randomUUID()}-${file.name}`;
 
     return fileService.createFile({
       id: randomUUID(),
-      userId: 'temp-user-id',
+      userId: user!.id,
       name: file.name,
       mimeType: file.type,
       size: buffer.byteLength,
@@ -22,22 +27,22 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
   }, {
     type: 'multipart'
   })
-  .get('/', async ({ query }) => {
+  .get('/', async ({ user, query }) => {
     const fileService = createFileService();
-    return fileService.getFilesByUser('temp-user-id', query.folderId);
+    return fileService.getFilesByUser(user!.id, query.folderId);
   })
-  .get('/:id', async ({ params }) => {
+  .get('/:id', async ({ user, params }) => {
     const fileService = createFileService();
-    return fileService.getFile(params.id);
+    return fileService.getFile(params.id, user!.id);
   })
-  .get('/:id/download', async ({ params }) => {
+  .get('/:id/download', async ({ user, params }) => {
     const fileService = createFileService();
-    const url = await fileService.getDownloadUrl(params.id);
+    const url = await fileService.getDownloadUrl(params.id, user!.id);
     if (!url) return new Response('File not found', { status: 404 });
     return { url };
   })
-  .delete('/:id', async ({ params }) => {
+  .delete('/:id', async ({ user, params }) => {
     const fileService = createFileService();
-    await fileService.deleteFile(params.id);
+    await fileService.deleteFile(params.id, user!.id);
     return { success: true };
   });
