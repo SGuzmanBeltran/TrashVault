@@ -1,7 +1,7 @@
 import type { FilePort, FolderPort, AuthPort, StatsPort } from '@/ports'
 import { MockFileAdapter } from '@/adapters/MockFileAdapter'
 import { MockFolderAdapter } from '@/adapters/MockFolderAdapter'
-import { MockAuthAdapter } from '@/adapters/MockAuthAdapter'
+import { HttpAuthAdapter } from '@/adapters/HttpAuthAdapter'
 import { MockStatsAdapter } from '@/adapters/MockStatsAdapter'
 
 class Container {
@@ -22,5 +22,5 @@ export const container = new Container()
 
 container.register<FilePort>('FilePort', new MockFileAdapter())
 container.register<FolderPort>('FolderPort', new MockFolderAdapter())
-container.register<AuthPort>('AuthPort', new MockAuthAdapter())
+container.register<AuthPort>('AuthPort', new HttpAuthAdapter())
 container.register<StatsPort>('StatsPort', new MockStatsAdapter())

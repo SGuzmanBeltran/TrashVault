@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
+    "better-auth": "^1.6.9",
     "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
     "tailwindcss": "^4.2.4",

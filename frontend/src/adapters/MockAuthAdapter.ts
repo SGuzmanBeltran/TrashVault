@@ -17,10 +17,9 @@ function delay(ms: number): Promise<void> {
 export class MockAuthAdapter implements AuthPort {
   private currentUser: User | null = null
 
-  async login(email: string, _password: string): Promise<{ token: string }> {
+  async login(email: string, _password: string): Promise<void> {
     await delay(MOCK_DELAY)
     this.currentUser = { ...MOCK_USER, email }
-    return { token: 'mock-jwt-token' }
   }
 
   async logout(): Promise<void> {

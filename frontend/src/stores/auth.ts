@@ -8,6 +8,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading = ref(false)
   const isAuthenticated = computed(() => user.value !== null)
   const authService = useAuthService()
+  let checkSessionPromise: Promise<void> | null = null
 
   async function login(email: string, password: string) {
     isLoading.value = true
@@ -30,12 +31,19 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function checkSession() {
-    isLoading.value = true
-    try {
-      user.value = await authService.getCurrentUser()
-    } finally {
-      isLoading.value = false
+    if (checkSessionPromise) {
+      return checkSessionPromise
     }
+
+    isLoading.value = true
+    checkSessionPromise = authService.getCurrentUser().then((u) => {
+      user.value = u
+    }).finally(() => {
+      isLoading.value = false
+      checkSessionPromise = null
+    })
+
+    return checkSessionPromise
   }
 
   return { user, isLoading, isAuthenticated, login, logout, checkSession }

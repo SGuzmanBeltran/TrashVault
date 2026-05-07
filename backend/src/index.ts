@@ -5,6 +5,7 @@ import { fileRoutes, folderRoutes } from './infrastructure/http';
 import { registerFileRepository, registerFolderRepository, registerStorage } from './infrastructure/di/container';
 
 import { Elysia } from 'elysia';
+import { cors } from '@elysiajs/cors';
 
 registerStorage({
     provider: 's3',
@@ -18,6 +19,11 @@ registerFileRepository();
 registerFolderRepository();
 
 const app = new Elysia()
+  .use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+    allowedHeaders: ['content-type', 'cookie', 'authorization'],
+  }))
   .use(authPlugin)
   .use(fileRoutes)
   .use(folderRoutes)

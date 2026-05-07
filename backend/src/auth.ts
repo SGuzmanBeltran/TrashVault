@@ -12,4 +12,15 @@ export const auth = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 	},
+	trustedOrigins: ["http://localhost:5173"],
+	session: {
+		expiresIn: 60 * 60 * 24 * 7,
+		updateAge: 60 * 15,
+	},
+	advanced: {
+		defaultCookieAttributes: {
+			sameSite: 'lax',
+			secure: false,
+		},
+	},
 });
