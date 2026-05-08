@@ -1,8 +1,7 @@
 import { Elysia } from 'elysia';
 import { auth } from '../../auth';
 
-export const authPlugin = new Elysia({ name: 'better-auth' })
-  .mount(auth.handler)
+export const authMacro = new Elysia({ name: 'auth-macro' })
   .macro({
     auth: {
       async resolve({ request: { headers } }) {
@@ -21,3 +20,7 @@ export const authPlugin = new Elysia({ name: 'better-auth' })
       },
     },
   });
+
+export const authPlugin = new Elysia({ name: 'better-auth' })
+  .use(authMacro)
+  .mount(auth.handler);

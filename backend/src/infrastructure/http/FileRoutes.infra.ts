@@ -1,8 +1,10 @@
 import { Elysia, t } from 'elysia';
 import { createFileService } from '../di/container';
 import { randomUUID } from 'crypto';
+import { authMacro } from './auth.plugin';
 
 export const fileRoutes = new Elysia({ prefix: '/files' })
+  .use(authMacro)
   .post('/upload', async ({ user, body }) => {
     const fileService = createFileService();
     const uploadedFile = body.file;
@@ -11,7 +13,7 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
 
     return fileService.createFile({
       id: randomUUID(),
-      userId: user.id,
+      userId: user!.id,
       name: uploadedFile.name,
       mimeType: uploadedFile.type,
       size: buffer.byteLength,
@@ -30,19 +32,19 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
   })
   .get('/', async ({ user, query }) => {
     const fileService = createFileService();
-    return fileService.getFilesByUser(user.id, query.folderId);
+    return fileService.getFilesByUser(user!.id, query.folderId);
   }, {
     auth: true,
   })
   .get('/:id', async ({ user, params }) => {
     const fileService = createFileService();
-    return fileService.getFile(params.id, user.id);
+    return fileService.getFile(params.id, user!.id);
   }, {
     auth: true,
   })
   .get('/:id/download', async ({ user, params }) => {
     const fileService = createFileService();
-    const url = await fileService.getDownloadUrl(params.id, user.id);
+    const url = await fileService.getDownloadUrl(params.id, user!.id);
     if (!url) return new Response('File not found', { status: 404 });
     return { url };
   }, {
@@ -50,7 +52,7 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
   })
   .delete('/:id', async ({ user, params }) => {
     const fileService = createFileService();
-    await fileService.deleteFile(params.id, user.id);
+    await fileService.deleteFile(params.id, user!.id);
     return { success: true };
   }, {
     auth: true,
