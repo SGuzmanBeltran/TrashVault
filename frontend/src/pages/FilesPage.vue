@@ -23,10 +23,27 @@ const fileStore = useFileStore()
 const viewMode = ref<FileViewMode>('grid')
 const showNewFolder = ref(false)
 const newFolderName = ref('')
+const fileInput = ref<HTMLInputElement | null>(null)
 
 onMounted(() => {
   fileStore.loadFolder(null)
 })
+
+function triggerFileSelect() {
+  fileInput.value?.click()
+}
+
+async function handleFileSelect(event: Event) {
+  const target = event.target as HTMLInputElement
+  const selectedFiles = target.files
+  if (!selectedFiles) return
+
+  for (const file of selectedFiles) {
+    await fileStore.uploadFile(file)
+  }
+
+  target.value = ''
+}
 
 function handleOpenFolder(id: string) {
   const folder = fileStore.folders.find((f) => f.id === id)
@@ -66,10 +83,20 @@ async function handleCreateFolder() {
           <FolderPlus class="h-4 w-4" />
           New Folder
         </button>
-        <button class="flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-fg transition-all hover:brightness-110 active:scale-[0.98]">
+        <button
+          class="flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-fg transition-all hover:brightness-110 active:scale-[0.98]"
+          @click="triggerFileSelect"
+        >
           <Upload class="h-4 w-4" />
           Upload
         </button>
+        <input
+          ref="fileInput"
+          type="file"
+          multiple
+          class="hidden"
+          @change="handleFileSelect"
+        />
       </div>
     </div>
 

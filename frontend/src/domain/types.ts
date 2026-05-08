@@ -14,7 +14,6 @@ export interface FileItem {
   folderId: string | null
   createdAt: string
   updatedAt: string
-  thumbnailUrl?: string
 }
 
 export interface Folder {
@@ -22,8 +21,6 @@ export interface Folder {
   name: string
   parentId: string | null
   createdAt: string
-  fileCount: number
-  size: number
 }
 
 export interface StorageStats {

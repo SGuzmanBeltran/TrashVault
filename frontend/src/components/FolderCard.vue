@@ -34,8 +34,6 @@ const showMenu = ref(false)
         {{ folder.name }}
       </div>
       <div class="mt-0.5 flex items-center gap-2 text-xs text-surface-fg-subtle">
-        <span>{{ folder.fileCount }} files</span>
-        <span class="h-0.5 w-0.5 rounded-full bg-surface-fg-subtle" />
         <span>{{ formatDate(folder.createdAt) }}</span>
       </div>
     </div>

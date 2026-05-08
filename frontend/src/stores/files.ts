@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { toast } from 'vue-sonner'
 import type { FileItem, Folder, Breadcrumb, SortConfig } from '@/domain/types'
 import { useFileService, useFolderService } from '@/services'
 
@@ -63,6 +64,21 @@ export const useFileStore = defineStore('files', () => {
     return newFolder
   }
 
+  async function uploadFile(file: File) {
+    isLoading.value = true
+    try {
+      await fileService.uploadFile(file, currentFolderId.value)
+      await loadFolder(currentFolderId.value)
+      toast.success(`"${file.name}" uploaded successfully`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Upload failed'
+      toast.error(message)
+      throw error
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   async function deleteFile(id: string) {
     await fileService.deleteFile(id)
     files.value = files.value.filter((f) => f.id !== id)
@@ -110,6 +126,7 @@ export const useFileStore = defineStore('files', () => {
     loadFolder,
     navigateToFolder,
     createFolder,
+    uploadFile,
     deleteFile,
     deleteFolder,
     toggleFileSelection,

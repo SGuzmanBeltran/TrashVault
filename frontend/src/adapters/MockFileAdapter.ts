@@ -142,4 +142,19 @@ export class MockFileAdapter implements FilePort {
     await delay(MOCK_DELAY / 3)
     return 'https://example.com/download/mock-url'
   }
+
+  async uploadFile(file: File, folderId: string | null): Promise<FileItem> {
+    await delay(MOCK_DELAY)
+    const newFile: FileItem = {
+      id: `file-${Date.now()}`,
+      name: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      size: file.size,
+      folderId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    this.files.push(newFile)
+    return newFile
+  }
 }

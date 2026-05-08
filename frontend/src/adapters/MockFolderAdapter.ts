@@ -9,32 +9,24 @@ const MOCK_FOLDERS: Folder[] = [
     name: 'Work',
     parentId: null,
     createdAt: '2026-03-01T10:00:00Z',
-    fileCount: 3,
-    size: 3_465_000,
   },
   {
     id: 'folder-2',
     name: 'Design Assets',
     parentId: null,
     createdAt: '2026-03-10T14:00:00Z',
-    fileCount: 3,
-    size: 17_345_000,
   },
   {
     id: 'folder-3',
     name: 'Backups',
     parentId: null,
     createdAt: '2026-02-15T08:00:00Z',
-    fileCount: 1,
-    size: 34_500_000,
   },
   {
     id: 'folder-4',
     name: 'Archive',
     parentId: 'folder-1',
     createdAt: '2026-04-01T10:00:00Z',
-    fileCount: 0,
-    size: 0,
   },
 ]
 
@@ -64,8 +56,6 @@ export class MockFolderAdapter implements FolderPort {
       name,
       parentId,
       createdAt: new Date().toISOString(),
-      fileCount: 0,
-      size: 0,
     }
     this.folders.push(newFolder)
     return newFolder
