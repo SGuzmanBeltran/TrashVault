@@ -18,15 +18,18 @@ registerStorage({
 registerFileRepository();
 registerFolderRepository();
 
+const apiRoutes = new Elysia({ prefix: '/api' })
+  .use(authPlugin)
+  .use(fileRoutes)
+  .use(folderRoutes);
+
 const app = new Elysia()
   .use(cors({
     origin: 'http://localhost:5173',
     credentials: true,
     allowedHeaders: ['content-type', 'cookie', 'authorization'],
   }))
-  .use(authPlugin)
-  .use(fileRoutes)
-  .use(folderRoutes)
+  .use(apiRoutes)
   .get('/', () => 'Hello Elysia')
   .listen(3000);
 

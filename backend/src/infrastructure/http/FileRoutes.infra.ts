@@ -1,26 +1,31 @@
-import { Elysia } from 'elysia';
+import { Elysia, t } from 'elysia';
 import { createFileService } from '../di/container';
 import { randomUUID } from 'crypto';
 
 export const fileRoutes = new Elysia({ prefix: '/files' })
-  .post('/upload', async ({ user, file, body }) => {
+  .post('/upload', async ({ user, body }) => {
     const fileService = createFileService();
-    const buffer = await file.arrayBuffer();
-    const key = `files/${randomUUID()}-${file.name}`;
+    const uploadedFile = body.file;
+    const buffer = await uploadedFile.arrayBuffer();
+    const key = `files/${randomUUID()}-${uploadedFile.name}`;
 
     return fileService.createFile({
       id: randomUUID(),
       userId: user.id,
-      name: file.name,
-      mimeType: file.type,
+      name: uploadedFile.name,
+      mimeType: uploadedFile.type,
       size: buffer.byteLength,
-      bucket: process.env.R2_BUCKET,
+      bucket: process.env.R2_BUCKET!,
       key,
       folderId: body.folderId || null,
       buffer,
     });
   }, {
     type: 'multipart',
+    body: t.Object({
+      file: t.File(),
+      folderId: t.Optional(t.String()),
+    }),
     auth: true,
   })
   .get('/', async ({ user, query }) => {

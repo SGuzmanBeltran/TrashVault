@@ -5,17 +5,19 @@ export const authPlugin = new Elysia({ name: 'better-auth' })
   .mount(auth.handler)
   .macro({
     auth: {
-      async resolve({ error, request: { headers } }) {
-        const session = await auth.api.getSession({
-          headers,
-        });
-
-        if (!session) return error(401);
+      async resolve({ request: { headers } }) {
+        const session = await auth.api.getSession({ headers });
 
         return {
-          user: session.user,
-          session: session.session,
+          user: session?.user ?? null,
+          session: session?.session ?? null,
         };
+      },
+      beforeHandle({ user, set }) {
+        if (!user) {
+          set.status = 401;
+          return 'Unauthorized';
+        }
       },
     },
   });

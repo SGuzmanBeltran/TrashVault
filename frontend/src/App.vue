@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { Toaster } from 'vue-sonner'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 
@@ -13,5 +14,6 @@ onMounted(() => {
 </script>
 
 <template>
+  <Toaster position="bottom-right" rich-colors />
   <RouterView />
 </template>
