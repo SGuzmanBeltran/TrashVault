@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   LayoutDashboard,
@@ -6,14 +7,31 @@ import {
   Settings,
   Shield,
 } from 'lucide-vue-next'
+import { useStatsStore } from '@/stores/stats'
+import { formatBytes } from '@/utils'
 
 const route = useRoute()
+const statsStore = useStatsStore()
+
+onMounted(() => {
+  statsStore.loadStats()
+})
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/files', label: 'Files', icon: FolderOpen },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
+
+const storagePercent = () => {
+  if (!statsStore.stats) return 2
+  return (statsStore.stats.usedBytes / statsStore.stats.maxBytes) * 100
+}
+
+const storageLabel = () => {
+  if (!statsStore.stats) return '...'
+  return `${formatBytes(statsStore.stats.usedBytes)} of ${formatBytes(statsStore.stats.maxBytes)}`
+}
 </script>
 
 <template>
@@ -57,10 +75,13 @@ const navItems = [
         Storage
       </div>
       <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-overlay">
-        <div class="h-full w-[2%] rounded-full bg-accent transition-all duration-500" />
+        <div
+          class="h-full rounded-full bg-accent transition-all duration-500"
+          :style="{ width: `${storagePercent()}%` }"
+        />
       </div>
       <div class="mt-1.5 text-xs text-surface-fg-subtle">
-        102.7 MB of 5 GB
+        {{ storageLabel() }}
       </div>
     </div>
   </aside>

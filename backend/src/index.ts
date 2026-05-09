@@ -1,7 +1,7 @@
 import 'dotenv/config';
 
 import { authPlugin } from './infrastructure/http/auth.plugin';
-import { fileRoutes, folderRoutes } from './infrastructure/http';
+import { fileRoutes, folderRoutes, statsRoutes } from './infrastructure/http';
 import { registerFileRepository, registerFolderRepository, registerStorage } from './infrastructure/di/container';
 
 import { Elysia } from 'elysia';
@@ -21,7 +21,8 @@ registerFolderRepository();
 const apiRoutes = new Elysia({ prefix: '/api' })
   .use(authPlugin)
   .use(fileRoutes)
-  .use(folderRoutes);
+  .use(folderRoutes)
+  .use(statsRoutes);
 
 const app = new Elysia()
   .use(cors({

@@ -2,7 +2,7 @@ import type { FilePort, FolderPort, AuthPort, StatsPort } from '@/ports'
 import { HttpFileAdapter } from '@/adapters/HttpFileAdapter'
 import { HttpFolderAdapter } from '@/adapters/HttpFolderAdapter'
 import { HttpAuthAdapter } from '@/adapters/HttpAuthAdapter'
-import { MockStatsAdapter } from '@/adapters/MockStatsAdapter'
+import { HttpStatsAdapter } from '@/adapters/HttpStatsAdapter'
 
 class Container {
   private instances = new Map<string, unknown>()
@@ -23,4 +23,4 @@ export const container = new Container()
 container.register<FilePort>('FilePort', new HttpFileAdapter())
 container.register<FolderPort>('FolderPort', new HttpFolderAdapter())
 container.register<AuthPort>('AuthPort', new HttpAuthAdapter())
-container.register<StatsPort>('StatsPort', new MockStatsAdapter())
+container.register<StatsPort>('StatsPort', new HttpStatsAdapter())
