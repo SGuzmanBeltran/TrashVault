@@ -1,4 +1,5 @@
-import { FileRepositoryPort, FileEntity } from '../ports/repository/FileRepository.port';
+import { FileEntity, FileRepositoryPort } from '../ports/repository/FileRepository.port';
+
 import { StoragePort } from '../ports/storage/Storage.port';
 
 export interface CreateFileParams {
@@ -22,17 +23,22 @@ export class FileService {
   async createFile(params: CreateFileParams): Promise<FileEntity> {
     await this.storage.upload(params.buffer, params.key, params.mimeType);
 
-    return this.fileRepository.create({
-      id: params.id,
-      userId: params.userId,
-      name: params.name,
-      mimeType: params.mimeType,
-      size: params.size,
-      bucket: params.bucket,
-      key: params.key,
-      folderId: params.folderId,
-      createdAt: new Date(),
-    });
+    try {
+      return await this.fileRepository.create({
+        id: params.id,
+        userId: params.userId,
+        name: params.name,
+        mimeType: params.mimeType,
+        size: params.size,
+        bucket: params.bucket,
+        key: params.key,
+        folderId: params.folderId,
+        createdAt: new Date(),
+      });
+    } catch (error) {
+      await this.storage.delete(params.key);
+      throw error;
+    }
   }
 
   async getFile(id: string, userId: string): Promise<FileEntity | null> {
@@ -45,9 +51,12 @@ export class FileService {
 
   async deleteFile(id: string, userId: string): Promise<void> {
     const file = await this.fileRepository.findById(id, userId);
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     await this.storage.delete(file.key);
+
     await this.fileRepository.delete(id, userId);
   }
 
