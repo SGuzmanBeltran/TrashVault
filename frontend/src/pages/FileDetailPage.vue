@@ -21,6 +21,7 @@ import { useFileService } from '@/services'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
 import type { FileItem } from '@/domain/types'
 import type { Component } from 'vue'
+import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
@@ -61,6 +62,17 @@ onMounted(async () => {
 
 const iconType = computed(() => (file.value ? getFileIcon(file.value.mimeType) : 'file'))
 const iconClasses = computed(() => iconColorMap[iconType.value] ?? 'text-surface-fg-muted bg-surface-overlay')
+
+async function downloadFile() {
+  if (!file.value) return
+  try {
+    const url = await fileService.getDownloadUrl(file.value.id)
+    window.open(url, '_blank')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get download URL'
+    toast.error(message)
+  }
+}
 </script>
 
 <template>
@@ -114,7 +126,10 @@ const iconClasses = computed(() => iconColorMap[iconType.value] ?? 'text-surface
           </div>
 
           <div class="mt-8 flex items-center gap-3">
-            <button class="flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg transition-all hover:brightness-110 active:scale-[0.98]">
+            <button
+              class="flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg transition-all hover:brightness-110 active:scale-[0.98]"
+              @click="downloadFile"
+            >
               <Download class="h-4 w-4" />
               Download
             </button>

@@ -16,6 +16,8 @@ import {
 import { ref, computed } from 'vue'
 import type { FileItem } from '@/domain/types'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
+import { useFileService } from '@/services'
+import { toast } from 'vue-sonner'
 
 const props = defineProps<{
   file: FileItem
@@ -28,7 +30,18 @@ const emit = defineEmits<{
   preview: [file: FileItem]
 }>()
 
+const fileService = useFileService()
 const showMenu = ref(false)
+
+async function downloadFile() {
+  try {
+    const url = await fileService.getDownloadUrl(props.file.id)
+    window.open(url, '_blank')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get download URL'
+    toast.error(message)
+  }
+}
 
 const iconMap: Record<string, typeof File> = {
   'file-text': FileText,
@@ -114,7 +127,7 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
               </button>
               <button
                 class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
-                @click.stop="showMenu = false"
+                @click.stop="downloadFile(); showMenu = false"
               >
                 <Download class="h-4 w-4" />
                 Download
