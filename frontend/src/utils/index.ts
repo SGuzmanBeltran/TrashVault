@@ -1,10 +1,11 @@
 import type { AccentColor } from '@/domain/types'
 
 export function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
+  const n = Number(bytes)
+  if (n === 0 || Number.isNaN(n)) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  const value = bytes / Math.pow(1024, i)
+  const i = Math.floor(Math.log(n) / Math.log(1024))
+  const value = n / Math.pow(1024, i)
   return `${value.toFixed(i > 0 ? 1 : 0)} ${units[i]!}`
 }
 

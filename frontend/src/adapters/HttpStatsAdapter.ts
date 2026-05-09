@@ -36,10 +36,10 @@ export class HttpStatsAdapter implements StatsPort {
   async getStats(): Promise<StorageStats> {
     const data = await apiFetch<BackendStats>('/stats')
     return {
-      totalFiles: data.totalFiles,
-      totalFolders: data.totalFolders,
-      usedBytes: data.usedBytes,
-      maxBytes: data.maxBytes,
+      totalFiles: Number(data.totalFiles),
+      totalFolders: Number(data.totalFolders),
+      usedBytes: Number(data.usedBytes),
+      maxBytes: Number(data.maxBytes),
       recentFiles: data.recentFiles.map(mapFile),
     }
   }
