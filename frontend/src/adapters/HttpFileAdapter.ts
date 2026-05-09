@@ -1,6 +1,7 @@
-import type { FilePort } from '@/ports'
+import type { FilePort, UploadProgressCallbacks } from '@/ports'
 import type { FileItem } from '@/domain/types'
 import { apiFetch } from '@/lib/api-fetch'
+import { uploadWithProgress } from '@/lib/xhr-upload'
 
 interface BackendFileItem {
   id: string
@@ -57,6 +58,15 @@ export class HttpFileAdapter implements FilePort {
       body: formData,
     })
 
+    return mapFile(item)
+  }
+
+  async uploadFileWithProgress(
+    file: File,
+    folderId: string | null,
+    callbacks: UploadProgressCallbacks,
+  ): Promise<FileItem> {
+    const item = await uploadWithProgress(file, folderId, callbacks)
     return mapFile(item)
   }
 }

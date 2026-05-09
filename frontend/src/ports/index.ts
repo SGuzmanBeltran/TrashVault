@@ -1,11 +1,21 @@
 import type { FileItem, Folder, StorageStats } from '@/domain/types'
 
+export interface UploadProgressCallbacks {
+  onProgress: (progress: number) => void
+  signal?: AbortSignal
+}
+
 export interface FilePort {
   listFiles(folderId: string | null): Promise<FileItem[]>
   getFile(id: string): Promise<FileItem>
   deleteFile(id: string): Promise<void>
   getDownloadUrl(id: string): Promise<string>
   uploadFile(file: File, folderId: string | null): Promise<FileItem>
+  uploadFileWithProgress(
+    file: File,
+    folderId: string | null,
+    callbacks: UploadProgressCallbacks,
+  ): Promise<FileItem>
 }
 
 export interface FolderPort {

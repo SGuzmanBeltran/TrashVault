@@ -1,146 +1,88 @@
-# TrashVault — Backend-Frontend Connection Plan
+# TrashVault Enhancement Plan
 
-## Context
+## Phase 1: Upload Progress Panel (Google Drive-style)
 
-- **Backend**: Elysia (Bun) with PostgreSQL + Drizzle, file/folder CRUD, auth via Better Auth, R2 storage.
-- **Frontend**: Vue 3 + Vite + Pinia + Tailwind, ports-and-adapters DI pattern.
-- **Current Gap**: Auth is live. Files, folders, and stats are still mocked.
+Replace per-file toast notifications with a persistent, collapsible panel in the bottom-right
+that shows all active and completed uploads.
 
-## Design Decisions
+**Backend:** No changes needed.
 
-1. **Upload is the highest priority** — Phase 1.
-2. **Backend owns UTC timestamps** (integers). Frontend adapters convert them to ISO strings.
-3. **`maxBytes` is hardcoded to 5GB** for now.
-4. **Folder `fileCount` and `size` are removed** from the `Folder` type — they are unnecessary.
-5. **`thumbnailUrl` is removed** from the `FileItem` type — backend does not support it.
-6. **Backend routes are mounted under `/api`** to match the Vite proxy.
-7. **`apiFetch` utility** is built in Phase 1 (not Phase 4) since all HTTP adapters need it.
-8. **Notifications** use `vue-sonner` toast library.
+### Tasks
 
----
-
-## Phase 1: Upload End-to-End (In Progress)
-
-**Goal**: A user can select files from the Files page and upload them to the real backend.
-
-### Backend Tasks
-
-| File | Change |
-|---|---|
-| `backend/src/index.ts` | Mount `fileRoutes` under `/api/files` and `folderRoutes` under `/api/folders` |
-| `backend/src/infrastructure/http/FileRoutes.infra.ts` | Fix Elysia multipart handler — verify `body.file` extraction works correctly |
-| `backend/src/db/schema.ts` | Ensure `thumbnailUrl` is removed from `files` table |
-
-### Frontend Tasks
-
-| File | Change |
-|---|---|
-| `frontend/src/domain/types.ts` | Remove `thumbnailUrl` from `FileItem`; remove `fileCount` and `size` from `Folder` |
-| `frontend/src/ports/index.ts` | Add `uploadFile(file: File, folderId: string \| null): Promise<FileItem>` to `FilePort` |
-| `frontend/src/lib/api-fetch.ts` | Create shared `fetch` wrapper with `/api` base, `credentials: 'include'`, JSON helpers, 401 redirect |
-| `frontend/src/adapters/HttpFileAdapter.ts` | Create adapter implementing `FilePort` with real HTTP calls |
-| `frontend/src/stores/files.ts` | Add `uploadFile(file: File)` action with loading state and toast notification on error |
-| `frontend/src/pages/FilesPage.vue` | Add hidden file input, wire Upload button, call `fileStore.uploadFile(file)` per selected file |
-| `frontend/src/container.ts` | Swap `MockFileAdapter` → `HttpFileAdapter` |
-
-### Dependencies
-
-- Install `vue-sonner` for toast notifications.
-
-### Testing Checklist
-
-1. Log in → navigate to Files.
-2. Click Upload → select file(s).
-3. Loading state appears during upload.
-4. Files appear in current folder after success.
-5. Backend has new rows with correct `folderId` (`null` for root).
-6. Upload error shows toast notification.
-7. No console errors or 401s.
+- [ ] Create `frontend/src/lib/xhr-upload.ts`
+  - `uploadWithProgress(file, folderId, onProgress)` — XMLHttpRequest wrapper with `upload.onprogress`, sends FormData, `withCredentials: true`
+- [ ] Create `frontend/src/composables/useUploadQueue.ts`
+  - Reactive `UploadItem[]` state: `{ id, file, status, progress, error }`
+  - Methods: `addUpload()`, `cancelUpload()`, `retryUpload()`, `clearCompleted()`
+- [ ] Create `frontend/src/components/UploadProgressItem.vue`
+  - File icon/name, animated progress bar, cancel button, status (uploading/complete/failed)
+- [ ] Create `frontend/src/components/UploadPanel.vue`
+  - Fixed bottom-right collapsible drawer; header shows active count; auto-expands on new upload; completed items auto-dismiss after 5s
+- [ ] Update `frontend/src/ports/index.ts` — add `uploadFileWithProgress` to `FilePort`
+- [ ] Update `frontend/src/adapters/HttpFileAdapter.ts` — add `uploadFileWithProgress(file, folderId, onProgress)` method
+- [ ] Update `frontend/src/stores/files.ts` — remove direct toast calls from `uploadFile()`, delegate to UploadQueue
+- [ ] Update `frontend/src/pages/FilesPage.vue` — use `uploadQueue.addUpload()` instead of `fileStore.uploadFile()`
+- [ ] Update `frontend/src/App.vue` — mount `<UploadPanel />` alongside `<Toaster />`
 
 ---
 
-## Phase 2: Files & Folders CRUD + Listing
+## Phase 2: Image and Video Thumbnails
 
-**Goal**: Browse, create, delete files and folders with real data.
+Replace generic file-type icons with real thumbnail images for image/video files in
+FileCard and FileDetailPage.
 
-### Backend Tasks
+**Backend dependencies:** `sharp`, system `ffmpeg`.  
+**DB migration:** add `thumbnail_key` column to `files` table.
 
-| File | Change |
-|---|---|
-| `backend/src/adapters/repository/DrizzleFileRepository.adapter.ts` | Fix `findByUserId` to return only root-level files when `folderId` is `null` / absent |
-| `backend/src/adapters/repository/DrizzleFolderRepository.adapter.ts` | Fix `findByUserId` to return only root-level folders when `parentId` is `null` / absent |
+### Tasks
 
-### Frontend Tasks
-
-| File | Change |
-|---|---|
-| `frontend/src/adapters/HttpFileAdapter.ts` | Add `listFiles`, `getFile`, `deleteFile`, `getDownloadUrl` |
-| `frontend/src/adapters/HttpFolderAdapter.ts` | Create adapter: `listFolders`, `getFolder`, `createFolder`, `deleteFolder` |
-| `frontend/src/container.ts` | Swap `MockFolderAdapter` → `HttpFolderAdapter` |
-| `frontend/src/components/FolderCard.vue` | Remove file count / size display since fields are gone |
-
-### Testing Checklist
-
-1. Root folder shows only root-level files and folders.
-2. Navigate into folders shows correct nested items.
-3. Create folder works and refreshes list.
-4. Delete file / folder works and refreshes list.
-
----
-
-## Phase 3: Stats & Dashboard
-
-**Goal**: Dashboard and sidebar show real aggregated data.
-
-### Backend Tasks
-
-| File | Change |
-|---|---|
-| `backend/src/index.ts` | Add `GET /api/stats` route |
-| `backend/src/services/StatsService.service.ts` | Create service: count files/folders, sum sizes, return recent files |
-
-### Frontend Tasks
-
-| File | Change |
-|---|---|
-| `frontend/src/adapters/HttpStatsAdapter.ts` | Create adapter: `getStats()` → `GET /api/stats` |
-| `frontend/src/container.ts` | Swap `MockStatsAdapter` → `HttpStatsAdapter` |
-| `frontend/src/layouts/AppSidebar.vue` | Wire reactive storage stats from `statsStore` |
-| `frontend/src/pages/DashboardPage.vue` | Wire real stats and recent files |
-
-### Testing Checklist
-
-1. Sidebar storage bar reflects actual usage vs 5 GB cap.
-2. Dashboard shows correct totals.
-3. Recent files list is accurate.
+- [ ] Install backend dependencies: `bun add sharp`, `bun add -d @types/sharp`
+- [ ] Update `backend/src/db/schema.ts` — add `thumbnailKey: text('thumbnail_key')` (nullable) to `files` table
+- [ ] Update `backend/src/ports/repository/FileRepository.port.ts` — add `thumbnailKey?` to create params
+- [ ] Update `backend/src/adapters/repository/DrizzleFileRepository.adapter.ts` — persist `thumbnailKey`
+- [ ] Create `backend/src/services/ThumbnailService.service.ts`
+  - `generateImageThumbnail(buffer, mimeType)` — Sharp resize to 300px max, JPEG q80, strip EXIF
+  - `generateVideoThumbnail(buffer)` — spawn `ffmpeg -i pipe:0 -ss 00:00:01 -vframes 1 -f image2pipe pipe:1`
+  - `getThumbnailKey(fileKey)` — convention: `files/` → `thumbnails/`, extension → `.jpg`
+- [ ] Update `backend/src/services/FileService.service.ts`
+  - Add `getThumbnailUrl(id, userId)` — returns signed URL for thumbnail
+  - `createFile()` — generate thumbnail synchronously during upload; log warning on failure, don't block
+- [ ] Update `backend/src/infrastructure/http/FileRoutes.infra.ts`
+  - Update `POST /files/upload` — trigger thumbnail generation
+  - Add `GET /files/:id/thumbnail` — returns `{ url }` or 404
+- [ ] Run DB migration: `bunx drizzle-kit generate && bunx drizzle-kit migrate`
+- [ ] Update `frontend/src/ports/index.ts` — add `getThumbnailUrl(id)` to `FilePort`
+- [ ] Update `frontend/src/adapters/HttpFileAdapter.ts` — implement `getThumbnailUrl(id)`
+- [ ] Update `frontend/src/domain/types.ts` — add `thumbnailKey?: string | null` to `FileItem`
+- [ ] Update `frontend/src/components/FileCard.vue` — replace icon with `<img>` for image/video; lazy loading; fallback to icon on error; video play-icon overlay
+- [ ] Update `frontend/src/pages/FileDetailPage.vue` — show thumbnail for image/video files in preview area
 
 ---
 
-## Phase 4: Download & Polish
+## Phase 3: Drag-and-Drop Download
 
-**Goal**: Users can download files via signed URLs.
+Users drag FileCards out of the browser to desktop/Finder to download.
 
-### Frontend Tasks
+**Backend:** No changes needed.
 
-| File | Change |
-|---|---|
-| `frontend/src/components/FileCard.vue` | Wire Download menu: call `getDownloadUrl`, open in new tab |
-| `frontend/src/pages/FileDetailPage.vue` | Wire Download button: same pattern |
-| `frontend/src/adapters/*.ts` | Ensure all adapters use `apiFetch` consistently |
-| `frontend/src/adapters/Mock*.ts` | Delete mock adapters once all phases are verified |
+### Tasks
 
-### Testing Checklist
-
-1. Click Download on a file card → signed URL opens in new tab.
-2. Click Download on file detail page → same behavior.
-3. Expired URLs are handled gracefully.
+- [ ] Update `frontend/src/components/FileCard.vue`
+  - Add `draggable="true"` to root element
+  - Cache `downloadUrl` ref (prefetched on `mousedown`, which fires before `dragstart`)
+  - `@dragstart`: `effectAllowed='copy'`, `setData('DownloadURL', 'mimeType:name:url')`
+  - `@dragend`: reset visual state
+  - Subtle drag indicator (opacity reduction, accent ring)
+- [ ] Update `frontend/src/pages/FileDetailPage.vue` — make preview area draggable
 
 ---
 
-## Notes
+## Dependencies Between Phases
 
-- The Vite proxy is already configured: `/api` proxies to `http://localhost:3000`.
-- CORS is configured on the backend for `http://localhost:5173` with credentials.
-- Auth cookies flow automatically via `credentials: 'include'`.
-- No changes to the existing Pinia store structure or Vue component patterns beyond what is listed.
-- `formatBytes(bytes)` in `frontend/src/utils/index.ts` already handles file size display.
+None — all three phases are independent.
+
+| Phase | Complexity | Backend | Frontend |
+|-------|-----------|---------|----------|
+| 1. Upload Progress Panel | Medium | None | 9 tasks |
+| 2. Thumbnails | High | 7 tasks | 5 tasks |
+| 3. Drag-and-Drop Download | Low | None | 2 tasks |

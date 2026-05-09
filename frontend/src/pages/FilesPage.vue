@@ -12,6 +12,7 @@ import {
   Home,
 } from 'lucide-vue-next'
 import { useFileStore } from '@/stores/files'
+import { useUploadQueue } from '@/composables/useUploadQueue'
 import FileCard from '@/components/FileCard.vue'
 import FolderCard from '@/components/FolderCard.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
@@ -19,6 +20,7 @@ import type { FileViewMode } from '@/domain/types'
 
 const router = useRouter()
 const fileStore = useFileStore()
+const uploadQueue = useUploadQueue()
 
 const viewMode = ref<FileViewMode>('grid')
 const showNewFolder = ref(false)
@@ -39,7 +41,7 @@ async function handleFileSelect(event: Event) {
   if (!selectedFiles) return
 
   for (const file of selectedFiles) {
-    await fileStore.uploadFile(file)
+    uploadQueue.addUpload(file)
   }
 
   target.value = ''
