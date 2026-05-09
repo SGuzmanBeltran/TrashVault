@@ -1,5 +1,5 @@
 import { FolderEntity, FolderRepositoryPort, NewFolder } from '../../ports/repository/FolderRepository.port';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 import { db } from '../../db/index';
 import { folders } from '../../db/schema';
@@ -19,7 +19,9 @@ export class DrizzleFolderRepositoryAdapter implements FolderRepositoryPort {
 
   async findByUserId(userId: string, parentId?: string | null): Promise<FolderEntity[]> {
     if (parentId === undefined || parentId === null) {
-      return db.select().from(folders).where(eq(folders.userId, userId));
+      return db.select().from(folders).where(
+        and(eq(folders.userId, userId), isNull(folders.parentId))
+      );
     }
     return db.select().from(folders).where(
       and(eq(folders.userId, userId), eq(folders.parentId, parentId))

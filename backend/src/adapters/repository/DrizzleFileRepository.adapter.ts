@@ -1,5 +1,5 @@
 import { FileEntity, FileRepositoryPort, NewFile } from '../../ports/repository/FileRepository.port';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 import { db } from '../../db/index';
 import { files } from '../../db/schema';
@@ -19,7 +19,9 @@ export class DrizzleFileRepositoryAdapter implements FileRepositoryPort {
 
   async findByUserId(userId: string, folderId?: string | null): Promise<FileEntity[]> {
     if (folderId === undefined || folderId === null) {
-      return db.select().from(files).where(eq(files.userId, userId));
+      return db.select().from(files).where(
+        and(eq(files.userId, userId), isNull(files.folderId))
+      );
     }
     return db.select().from(files).where(
       and(eq(files.userId, userId), eq(files.folderId, folderId))
