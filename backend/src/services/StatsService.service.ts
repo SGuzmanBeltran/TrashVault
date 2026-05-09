@@ -13,7 +13,7 @@ export interface StatsData {
     mimeType: string;
     size: number;
     folderId: string | null;
-    createdAt: number;
+    createdAt: Date;
   }>;
 }
 

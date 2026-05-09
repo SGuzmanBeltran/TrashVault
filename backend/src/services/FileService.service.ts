@@ -31,7 +31,7 @@ export class FileService {
       bucket: params.bucket,
       key: params.key,
       folderId: params.folderId,
-      createdAt: Date.now(),
+      createdAt: new Date(),
     });
   }
 

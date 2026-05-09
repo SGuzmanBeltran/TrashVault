@@ -7,7 +7,7 @@ export interface NewFile {
   bucket: string;
   key: string;
   folderId: string | null;
-  createdAt: number;
+  createdAt: Date;
 }
 
 export interface FileEntity extends NewFile {}

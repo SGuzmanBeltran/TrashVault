@@ -3,7 +3,7 @@ export interface NewFolder {
   userId: string;
   name: string;
   parentId: string | null;
-  createdAt: number;
+  createdAt: Date;
 }
 
 export interface FolderEntity extends NewFolder {}

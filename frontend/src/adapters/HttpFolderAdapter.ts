@@ -6,7 +6,7 @@ interface BackendFolder {
   id: string
   name: string
   parentId: string | null
-  createdAt: number
+  createdAt: string
 }
 
 function mapFolder(item: BackendFolder): Folder {

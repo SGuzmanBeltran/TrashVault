@@ -8,7 +8,7 @@ interface BackendFileItem {
   mimeType: string
   size: number
   folderId: string | null
-  createdAt: number
+  createdAt: string
 }
 
 function mapFile(item: BackendFileItem): FileItem {

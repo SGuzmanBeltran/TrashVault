@@ -8,7 +8,7 @@ interface BackendFile {
   mimeType: string
   size: number
   folderId: string | null
-  createdAt: number
+  createdAt: string
 }
 
 interface BackendStats {

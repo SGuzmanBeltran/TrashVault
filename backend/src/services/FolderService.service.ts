@@ -16,7 +16,7 @@ export class FolderService {
       userId: params.userId,
       name: params.name,
       parentId: params.parentId,
-      createdAt: Date.now(),
+      createdAt: new Date(),
     });
   }
 
