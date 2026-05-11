@@ -56,6 +56,9 @@ export function useUploadQueue() {
           found.progress = 100
         }
         fileStore.loadFolder(fileStore.currentFolderId)
+        setTimeout(() => {
+          uploads.value = uploads.value.filter((u) => u.id !== id)
+        }, 5000)
       })
       .catch((error) => {
         const found = uploads.value.find((u) => u.id === id)
