@@ -11,6 +11,7 @@ export const files = pgTable('files', {
 	folderId: text('folder_id'),
 	thumbnailKey: text('thumbnail_key'),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
+	trashedAt: timestamp('trashed_at'),
 });
 
 export const folders = pgTable('folders', {
@@ -19,4 +20,5 @@ export const folders = pgTable('folders', {
 	name: text('name').notNull(),
 	parentId: text('parent_id'),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
+	trashedAt: timestamp('trashed_at'),
 });

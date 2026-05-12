@@ -9,6 +9,7 @@ export interface NewFile {
   folderId: string | null;
   thumbnailKey: string | null;
   createdAt: Date;
+  trashedAt: Date | null;
 }
 
 export interface FileEntity extends NewFile {}
@@ -18,4 +19,9 @@ export interface FileRepositoryPort {
   findById(id: string, userId: string): Promise<FileEntity | null>;
   findByUserId(userId: string, folderId?: string | null): Promise<FileEntity[]>;
   delete(id: string, userId: string): Promise<void>;
+  moveToTrash(id: string, userId: string): Promise<void>;
+  restoreFromTrash(id: string, userId: string): Promise<void>;
+  findTrashedByUserId(userId: string): Promise<FileEntity[]>;
+  permanentDelete(id: string, userId: string): Promise<void>;
+  emptyTrash(userId: string): Promise<void>;
 }

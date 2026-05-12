@@ -1,5 +1,5 @@
 import { FileEntity, FileRepositoryPort, NewFile } from '../../ports/repository/FileRepository.port';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 
 import { db } from '../../db/index';
 import { files } from '../../db/schema';
@@ -20,17 +20,47 @@ export class DrizzleFileRepositoryAdapter implements FileRepositoryPort {
   async findByUserId(userId: string, folderId?: string | null): Promise<FileEntity[]> {
     if (folderId === undefined || folderId === null) {
       return db.select().from(files).where(
-        and(eq(files.userId, userId), isNull(files.folderId))
+        and(eq(files.userId, userId), isNull(files.folderId), isNull(files.trashedAt))
       );
     }
     return db.select().from(files).where(
-      and(eq(files.userId, userId), eq(files.folderId, folderId))
+      and(eq(files.userId, userId), eq(files.folderId, folderId), isNull(files.trashedAt))
     );
   }
 
   async delete(id: string, userId: string): Promise<void> {
     await db.delete(files).where(
       and(eq(files.id, id), eq(files.userId, userId))
+    );
+  }
+
+  async moveToTrash(id: string, userId: string): Promise<void> {
+    await db.update(files).set({ trashedAt: new Date() }).where(
+      and(eq(files.id, id), eq(files.userId, userId))
+    );
+  }
+
+  async restoreFromTrash(id: string, userId: string): Promise<void> {
+    await db.update(files).set({ trashedAt: null }).where(
+      and(eq(files.id, id), eq(files.userId, userId))
+    );
+  }
+
+  async findTrashedByUserId(userId: string): Promise<FileEntity[]> {
+    return db.select().from(files).where(
+      and(eq(files.userId, userId), isNotNull(files.trashedAt))
+    );
+  }
+
+  async permanentDelete(id: string, userId: string): Promise<void> {
+    await db.delete(files).where(
+      and(eq(files.id, id), eq(files.userId, userId))
+    );
+  }
+
+  async emptyTrash(userId: string): Promise<void> {
+    await db.delete(files).where(
+      and(eq(files.userId, userId), isNotNull(files.trashedAt))
     );
   }
 }

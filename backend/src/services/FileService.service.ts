@@ -53,6 +53,7 @@ export class FileService {
         folderId: params.folderId,
         thumbnailKey,
         createdAt: new Date(),
+        trashedAt: null,
       });
     } catch (error) {
       await this.storage.delete(params.key).catch(() => {});

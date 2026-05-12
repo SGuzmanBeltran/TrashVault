@@ -1,5 +1,5 @@
 import { FolderEntity, FolderRepositoryPort, NewFolder } from '../../ports/repository/FolderRepository.port';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 
 import { db } from '../../db/index';
 import { folders } from '../../db/schema';
@@ -20,17 +20,47 @@ export class DrizzleFolderRepositoryAdapter implements FolderRepositoryPort {
   async findByUserId(userId: string, parentId?: string | null): Promise<FolderEntity[]> {
     if (parentId === undefined || parentId === null) {
       return db.select().from(folders).where(
-        and(eq(folders.userId, userId), isNull(folders.parentId))
+        and(eq(folders.userId, userId), isNull(folders.parentId), isNull(folders.trashedAt))
       );
     }
     return db.select().from(folders).where(
-      and(eq(folders.userId, userId), eq(folders.parentId, parentId))
+      and(eq(folders.userId, userId), eq(folders.parentId, parentId), isNull(folders.trashedAt))
     );
   }
 
   async delete(id: string, userId: string): Promise<void> {
     await db.delete(folders).where(
       and(eq(folders.id, id), eq(folders.userId, userId))
+    );
+  }
+
+  async moveToTrash(id: string, userId: string): Promise<void> {
+    await db.update(folders).set({ trashedAt: new Date() }).where(
+      and(eq(folders.id, id), eq(folders.userId, userId))
+    );
+  }
+
+  async restoreFromTrash(id: string, userId: string): Promise<void> {
+    await db.update(folders).set({ trashedAt: null }).where(
+      and(eq(folders.id, id), eq(folders.userId, userId))
+    );
+  }
+
+  async findTrashedByUserId(userId: string): Promise<FolderEntity[]> {
+    return db.select().from(folders).where(
+      and(eq(folders.userId, userId), isNotNull(folders.trashedAt))
+    );
+  }
+
+  async permanentDelete(id: string, userId: string): Promise<void> {
+    await db.delete(folders).where(
+      and(eq(folders.id, id), eq(folders.userId, userId))
+    );
+  }
+
+  async emptyTrash(userId: string): Promise<void> {
+    await db.delete(folders).where(
+      and(eq(folders.userId, userId), isNotNull(folders.trashedAt))
     );
   }
 }
