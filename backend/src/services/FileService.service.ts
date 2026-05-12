@@ -95,6 +95,9 @@ export class FileService {
       if (!file) return;
 
       await this.storage.delete(file.key);
+      if (file.thumbnailKey) {
+        await this.storage.delete(file.thumbnailKey).catch(() => {});
+      }
       await this.fileRepository.delete(id, userId);
     } catch (error) {
       if (error instanceof StorageError) throw error;
