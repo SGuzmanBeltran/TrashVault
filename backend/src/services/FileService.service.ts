@@ -1,7 +1,8 @@
 import { FileEntity, FileRepositoryPort } from '../ports/repository/FileRepository.port';
+import { StorageError, wrapRepositoryError, wrapStorageError } from '../errors';
+
 import { StoragePort } from '../ports/storage/Storage.port';
 import { ThumbnailService } from './ThumbnailService.service';
-import { wrapRepositoryError, wrapStorageError, StorageError } from '../errors';
 
 export interface CreateFileParams {
   id: string;

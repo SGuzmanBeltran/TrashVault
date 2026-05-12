@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ChevronRight,
@@ -10,6 +10,7 @@ import {
   SortAsc,
   FolderPlus,
   Home,
+  UploadCloud,
 } from 'lucide-vue-next'
 import { useFileStore } from '@/stores/files'
 import { useUploadQueue } from '@/composables/useUploadQueue'
@@ -26,6 +27,8 @@ const viewMode = ref<FileViewMode>('grid')
 const showNewFolder = ref(false)
 const newFolderName = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
+const dragCounter = ref(0)
+const isDragging = computed(() => dragCounter.value > 0)
 
 onMounted(() => {
   fileStore.loadFolder(null)
@@ -66,10 +69,66 @@ async function handleCreateFolder() {
   newFolderName.value = ''
   showNewFolder.value = false
 }
+
+function onDragEnter(event: DragEvent) {
+  event.preventDefault()
+  dragCounter.value++
+}
+
+function onDragOver(event: DragEvent) {
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'copy'
+  }
+}
+
+function onDragLeave(event: DragEvent) {
+  event.preventDefault()
+  dragCounter.value--
+}
+
+function onDrop(event: DragEvent) {
+  event.preventDefault()
+  dragCounter.value = 0
+
+  const droppedFiles = event.dataTransfer?.files
+  if (!droppedFiles || droppedFiles.length === 0) return
+
+  for (const file of droppedFiles) {
+    uploadQueue.addUpload(file)
+  }
+}
 </script>
 
 <template>
-  <div class="mx-auto max-w-5xl space-y-6">
+  <div
+    class="relative mx-auto min-h-full max-w-5xl space-y-6"
+    @dragenter="onDragEnter"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
+    <Transition name="fade">
+      <div
+        v-if="isDragging"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-surface/80 backdrop-blur-sm"
+      >
+        <div class="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-accent/50 bg-surface-raised/80 px-16 py-12">
+          <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/15">
+            <UploadCloud class="h-8 w-8 text-accent" />
+          </div>
+          <div class="text-center">
+            <p class="text-lg font-medium text-surface-fg">
+              Drop files to upload
+            </p>
+            <p class="mt-1 text-sm text-surface-fg-muted">
+              Files will be uploaded to the current folder
+            </p>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <div class="animate-in flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-semibold tracking-tight text-surface-fg">Files</h1>
