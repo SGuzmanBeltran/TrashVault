@@ -2,6 +2,7 @@ import { StoragePort } from '../ports/storage/Storage.port'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import sharp from 'sharp'
+import { ServiceError, wrapStorageError } from '../errors'
 
 const execFileAsync = promisify(execFile)
 
@@ -33,16 +34,21 @@ export class ThumbnailService {
   }
 
   async generateImageThumbnail(buffer: ArrayBuffer): Promise<ArrayBuffer> {
-    const image = sharp(Buffer.from(buffer), { failOn: 'none' })
-      .resize(THUMBNAIL_MAX_DIM, THUMBNAIL_MAX_DIM, {
-        fit: 'inside',
-        withoutEnlargement: true,
-      })
-      .jpeg({ quality: THUMBNAIL_QUALITY })
-      .rotate()
+    try {
+      const image = sharp(Buffer.from(buffer), { failOn: 'none' })
+        .resize(THUMBNAIL_MAX_DIM, THUMBNAIL_MAX_DIM, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: THUMBNAIL_QUALITY })
+        .rotate()
 
-    const output = await image.toBuffer()
-    return output.buffer
+      const output = await image.toBuffer()
+      return output.buffer
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
+      throw new ServiceError(500, 'Failed to generate image thumbnail');
+    }
   }
 
   async generateVideoThumbnail(buffer: ArrayBuffer): Promise<ArrayBuffer> {
@@ -74,8 +80,9 @@ export class ThumbnailService {
       )
 
       return stdout.buffer
-    } catch {
-      throw new Error('Failed to generate video thumbnail')
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
+      throw new ServiceError(500, 'Failed to generate video thumbnail');
     }
   }
 
@@ -100,7 +107,11 @@ export class ThumbnailService {
       }
 
       const thumbnailKey = this.getThumbnailKey(fileKey)
-      await this.storage.upload(thumbnailBuffer, thumbnailKey, 'image/jpeg')
+      try {
+        await this.storage.upload(thumbnailBuffer, thumbnailKey, 'image/jpeg')
+      } catch (error) {
+        throw wrapStorageError(error)
+      }
       return thumbnailKey
     } catch (error) {
       console.warn('Thumbnail generation failed:', error)

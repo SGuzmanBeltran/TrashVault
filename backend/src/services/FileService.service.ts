@@ -1,7 +1,7 @@
 import { FileEntity, FileRepositoryPort } from '../ports/repository/FileRepository.port';
-
 import { StoragePort } from '../ports/storage/Storage.port';
 import { ThumbnailService } from './ThumbnailService.service';
+import { wrapRepositoryError, wrapStorageError, StorageError } from '../errors';
 
 export interface CreateFileParams {
   id: string;
@@ -23,13 +23,22 @@ export class FileService {
   ) {}
 
   async createFile(params: CreateFileParams): Promise<FileEntity> {
-    await this.storage.upload(params.buffer, params.key, params.mimeType);
+    try {
+      await this.storage.upload(params.buffer, params.key, params.mimeType);
+    } catch (error) {
+      throw wrapStorageError(error);
+    }
 
-    const thumbnailKey = await this.thumbnailService.generateAndUpload(
-      params.buffer,
-      params.mimeType,
-      params.key,
-    );
+    let thumbnailKey: string | null = null;
+    try {
+      thumbnailKey = await this.thumbnailService.generateAndUpload(
+        params.buffer,
+        params.mimeType,
+        params.key,
+      );
+    } catch {
+      thumbnailKey = null;
+    }
 
     try {
       return await this.fileRepository.create({
@@ -45,48 +54,60 @@ export class FileService {
         createdAt: new Date(),
       });
     } catch (error) {
-      await this.storage.delete(params.key);
+      await this.storage.delete(params.key).catch(() => {});
       if (thumbnailKey) {
         await this.storage.delete(thumbnailKey).catch(() => {});
       }
-      throw error;
+      throw wrapRepositoryError(error);
     }
   }
 
-  async getThumbnailUrl(
-    id: string,
-    userId: string,
-    expiresIn: number = 3600,
-  ): Promise<string | null> {
-    const file = await this.fileRepository.findById(id, userId);
-    if (!file || !file.thumbnailKey) return null;
-
-    return this.storage.getSignedUrl(file.thumbnailKey, expiresIn);
+  async getThumbnailUrl(id: string, userId: string, expiresIn: number = 3600): Promise<string | null> {
+    try {
+      const file = await this.fileRepository.findById(id, userId);
+      if (!file || !file.thumbnailKey) return null;
+      return this.storage.getSignedUrl(file.thumbnailKey, expiresIn);
+    } catch (error) {
+      throw wrapRepositoryError(error);
+    }
   }
 
   async getFile(id: string, userId: string): Promise<FileEntity | null> {
-    return this.fileRepository.findById(id, userId);
+    try {
+      return await this.fileRepository.findById(id, userId);
+    } catch (error) {
+      throw wrapRepositoryError(error);
+    }
   }
 
   async getFilesByUser(userId: string, folderId?: string | null): Promise<FileEntity[]> {
-    return this.fileRepository.findByUserId(userId, folderId);
+    try {
+      return await this.fileRepository.findByUserId(userId, folderId);
+    } catch (error) {
+      throw wrapRepositoryError(error);
+    }
   }
 
   async deleteFile(id: string, userId: string): Promise<void> {
-    const file = await this.fileRepository.findById(id, userId);
-    if (!file) {
-      return;
+    try {
+      const file = await this.fileRepository.findById(id, userId);
+      if (!file) return;
+
+      await this.storage.delete(file.key);
+      await this.fileRepository.delete(id, userId);
+    } catch (error) {
+      if (error instanceof StorageError) throw error;
+      throw wrapRepositoryError(error);
     }
-
-    await this.storage.delete(file.key);
-
-    await this.fileRepository.delete(id, userId);
   }
 
   async getDownloadUrl(id: string, userId: string, expiresIn: number = 3600): Promise<string | null> {
-    const file = await this.fileRepository.findById(id, userId);
-    if (!file) return null;
-
-    return this.storage.getSignedUrl(file.key, expiresIn);
+    try {
+      const file = await this.fileRepository.findById(id, userId);
+      if (!file) return null;
+      return this.storage.getSignedUrl(file.key, expiresIn);
+    } catch (error) {
+      throw wrapRepositoryError(error);
+    }
   }
 }
