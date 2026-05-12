@@ -180,8 +180,8 @@ See [TODO.md](./TODO.md) for the full backlog. Highlights:
 - [x] File upload / download / list / delete API
 - [x] Folder management API
 - [x] Authentication (Better Auth)
-- [ ] Frontend login & file browser
-- [ ] Drag & drop uploads
+- [x] Frontend login & file browser
+- [x] Drag & drop uploads
 - [ ] Client-side zero-trust encryption
 - [ ] Image previews
 - [ ] Mobile responsive UI

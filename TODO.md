@@ -74,26 +74,57 @@ folders {
 
 - [x] API upload/download/list/delete
 - [x] Autenticación simple (Better Auth)
-- [ ] Frontend: login + navegador de archivos
-- [ ] Upload de archivos (drag & drop)
+- [x] Frontend: login + navegador de archivos
+- [x] Upload de archivos (drag & drop)
 
 ### Zero-Trust Encryption
 
-- [ ] Auth con password (Better Auth) — misma password para login y KEK
-- [ ] Client-side encryption: derivar KEK de la password (PBKDF2/Argon2)
-- [ ] Arquitectura KEK + DEK: password descifra la DEK, la DEK encripta los archivos
-- [ ] Encriptar archivos en el browser antes de subir
-- [ ] Almacenar solo bytes cifrados en MinIO/R2
-- [ ] Descifrar en el cliente al descargar
-- [ ] Re-encriptar DEK al cambiar password (sin tocar los archivos)
-- [ ] Nota: la misma password hace auth (server) y crypto (cliente), pero de formas distintas (hash vs PBKDF2). Si olvida la password, pierde los datos.
+> Full spec: [`docs/zero-trust-encryption.md`](docs/zero-trust-encryption.md)
+
+**Backend**
+
+- [ ] Add `user_encryption_keys` table (schema + relations)
+- [ ] Add `isEncrypted` column to `files` table
+- [ ] `EncryptionKeyRepository` port + Drizzle adapter
+- [ ] `EncryptionKeyService` (create, get, update)
+- [ ] `EncryptionKeyRoutes` (POST/GET/PUT `/api/user/encryption-key`)
+- [ ] Read `isEncrypted` from form data in upload route, store in DB
+
+**Frontend — Crypto Layer**
+
+- [ ] Install `hash-wasm` (Argon2id WASM)
+- [ ] `lib/crypto.ts` — deriveKek, generateDek, encryptDek, decryptDek, encryptFile, decryptFile
+
+**Frontend — Vault Store**
+
+- [ ] `stores/vault.ts` — DEK in memory, unlock/lock/initOnRegistration/tryAutoUnlock
+- [ ] `HttpEncryptionAdapter.ts` — API calls for encryption key CRUD
+- [ ] Add `EncryptionPort` to ports + container
+
+**Frontend — Auth Integration**
+
+- [ ] Wire vault.unlock() into login flow
+- [ ] Wire vault.initOnRegistration() into registration flow
+- [ ] Wire vault.lock() into logout flow
+- [ ] Wire vault.tryAutoUnlock() into checkSession (app mount)
+
+**Frontend — File Operations**
+
+- [ ] Encrypt files before upload (HttpFileAdapter)
+- [ ] Decrypt files on download (fetch + decrypt + Blob URL)
+- [ ] Skip thumbnail generation for encrypted files (backend)
+
+**Frontend — UI**
+
+- [ ] Unlock vault prompt (shown when sessionStorage has no cached password)
+- [ ] Password change flow (re-encrypt DEK with new KEK)
 
 ## Semana 2 — Polish
 
 - [ ] Preview de imágenes
-- [ ] Carpetas (crear, navegar, eliminar)
-- [ ] Descargar archivos
-- [ ] Manejo de errores con UI copada
+- [x] Carpetas (crear, navegar, eliminar)
+- [x] Descargar archivos
+- [x] Manejo de errores con UI copada
 - [ ] Responsive mobile
 
 ## Commands
