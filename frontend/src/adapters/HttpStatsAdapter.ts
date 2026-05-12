@@ -8,7 +8,9 @@ interface BackendFile {
   mimeType: string
   size: number
   folderId: string | null
+  thumbnailKey: string | null
   createdAt: string
+  trashedAt: string | null
 }
 
 interface BackendStats {
@@ -27,8 +29,10 @@ function mapFile(item: BackendFile): FileItem {
     mimeType: item.mimeType,
     size: item.size,
     folderId: item.folderId,
+    thumbnailKey: item.thumbnailKey ?? null,
     createdAt,
     updatedAt: createdAt,
+    trashedAt: item.trashedAt ? new Date(item.trashedAt).toISOString() : null,
   }
 }
 

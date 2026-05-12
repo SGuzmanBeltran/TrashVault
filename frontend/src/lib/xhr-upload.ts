@@ -4,7 +4,9 @@ interface BackendFileItem {
   mimeType: string
   size: number
   folderId: string | null
+  thumbnailKey: string | null
   createdAt: string
+  trashedAt: string | null
 }
 
 interface UploadProgressCallbacks {

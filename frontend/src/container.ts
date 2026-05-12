@@ -1,8 +1,9 @@
-import type { FilePort, FolderPort, AuthPort, StatsPort } from '@/ports'
+import type { FilePort, FolderPort, AuthPort, StatsPort, TrashPort } from '@/ports'
 import { HttpFileAdapter } from '@/adapters/HttpFileAdapter'
 import { HttpFolderAdapter } from '@/adapters/HttpFolderAdapter'
 import { HttpAuthAdapter } from '@/adapters/HttpAuthAdapter'
 import { HttpStatsAdapter } from '@/adapters/HttpStatsAdapter'
+import { HttpTrashAdapter } from '@/adapters/HttpTrashAdapter'
 
 class Container {
   private instances = new Map<string, unknown>()
@@ -24,3 +25,4 @@ container.register<FilePort>('FilePort', new HttpFileAdapter())
 container.register<FolderPort>('FolderPort', new HttpFolderAdapter())
 container.register<AuthPort>('AuthPort', new HttpAuthAdapter())
 container.register<StatsPort>('StatsPort', new HttpStatsAdapter())
+container.register<TrashPort>('TrashPort', new HttpTrashAdapter())

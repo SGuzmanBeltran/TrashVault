@@ -15,6 +15,7 @@ export interface FileItem {
   thumbnailKey: string | null
   createdAt: string
   updatedAt: string
+  trashedAt: string | null
 }
 
 export interface Folder {
@@ -22,6 +23,7 @@ export interface Folder {
   name: string
   parentId: string | null
   createdAt: string
+  trashedAt: string | null
 }
 
 export interface StorageStats {

@@ -11,6 +11,7 @@ interface BackendFileItem {
   folderId: string | null
   thumbnailKey: string | null
   createdAt: string
+  trashedAt: string | null
 }
 
 function mapFile(item: BackendFileItem): FileItem {
@@ -24,6 +25,7 @@ function mapFile(item: BackendFileItem): FileItem {
     thumbnailKey: item.thumbnailKey ?? null,
     createdAt,
     updatedAt: createdAt,
+    trashedAt: item.trashedAt ? new Date(item.trashedAt).toISOString() : null,
   }
 }
 

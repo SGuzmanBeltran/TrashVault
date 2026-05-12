@@ -7,6 +7,7 @@ interface BackendFolder {
   name: string
   parentId: string | null
   createdAt: string
+  trashedAt: string | null
 }
 
 function mapFolder(item: BackendFolder): Folder {
@@ -15,6 +16,7 @@ function mapFolder(item: BackendFolder): Folder {
     name: item.name,
     parentId: item.parentId,
     createdAt: new Date(item.createdAt).toISOString(),
+    trashedAt: item.trashedAt ? new Date(item.trashedAt).toISOString() : null,
   }
 }
 

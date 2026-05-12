@@ -6,6 +6,7 @@ import {
   FolderOpen,
   Settings,
   Shield,
+  Trash2,
 } from 'lucide-vue-next'
 import { useStatsStore } from '@/stores/stats'
 import { formatBytes } from '@/utils'
@@ -20,6 +21,7 @@ onMounted(() => {
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/files', label: 'Files', icon: FolderOpen },
+  { to: '/trash', label: 'Trash', icon: Trash2 },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
