@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { Search, Bell, ChevronDown, LogOut, User } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import AccentPicker from '@/components/AccentPicker.vue'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const showUserMenu = ref(false)
+
+async function handleSignOut() {
+  await authStore.logout()
+  showUserMenu.value = false
+  router.push('/login')
+}
 </script>
 
 <template>
@@ -62,7 +70,7 @@ const showUserMenu = ref(false)
               </button>
               <button
                 class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"
-                @click="authStore.logout()"
+                @click="handleSignOut"
               >
                 <LogOut class="h-4 w-4" />
                 Sign out
