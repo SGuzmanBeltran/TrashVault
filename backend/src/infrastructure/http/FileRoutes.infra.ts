@@ -50,6 +50,14 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
   }, {
     auth: true,
   })
+  .get('/:id/thumbnail', async ({ user, params }) => {
+    const fileService = createFileService();
+    const url = await fileService.getThumbnailUrl(params.id, user!.id);
+    if (!url) return new Response('No thumbnail available', { status: 404 });
+    return { url };
+  }, {
+    auth: true,
+  })
   .delete('/:id', async ({ user, params }) => {
     const fileService = createFileService();
     await fileService.deleteFile(params.id, user!.id);

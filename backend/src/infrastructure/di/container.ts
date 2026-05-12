@@ -7,6 +7,7 @@ import { FileService } from '../../services/FileService.service';
 import { FolderRepositoryPort } from '../../ports/repository/FolderRepository.port';
 import { FolderService } from '../../services/FolderService.service';
 import { StatsService } from '../../services/StatsService.service';
+import { ThumbnailService } from '../../services/ThumbnailService.service';
 import { S3StorageAdapter } from '../../adapters/storage/S3Storage.adapter';
 
 let storageInstance: StoragePort | null = null;
@@ -46,8 +47,12 @@ export function getFolderRepository(): FolderRepositoryPort {
   return folderRepositoryInstance;
 }
 
+export function createThumbnailService(): ThumbnailService {
+  return new ThumbnailService(getStorage());
+}
+
 export function createFileService(): FileService {
-  return new FileService(getFileRepository(), getStorage());
+  return new FileService(getFileRepository(), getStorage(), createThumbnailService());
 }
 
 export function createFolderService(): FolderService {

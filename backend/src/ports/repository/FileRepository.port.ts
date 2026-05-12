@@ -7,6 +7,7 @@ export interface NewFile {
   bucket: string;
   key: string;
   folderId: string | null;
+  thumbnailKey: string | null;
   createdAt: Date;
 }
 

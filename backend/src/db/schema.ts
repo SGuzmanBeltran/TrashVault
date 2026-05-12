@@ -9,6 +9,7 @@ export const files = pgTable('files', {
 	bucket: text('bucket').notNull(),
 	key: text('key').notNull(),
 	folderId: text('folder_id'),
+	thumbnailKey: text('thumbnail_key'),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
