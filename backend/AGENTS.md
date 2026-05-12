@@ -50,8 +50,8 @@ R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 
 - Schema: `src/db/schema.ts` (tables: `files`, `folders`)
 - Connection: `src/db/index.ts` reads `DATABASE_URL` directly
-- Migrations: `drizzle-kit` — `bunx drizzle-kit generate`, `bunx drizzle-kit migrate`
 - Config: `drizzle.config.ts` uses `dialect: 'postgresql'`
+- **Do NOT run `drizzle-kit generate` or `drizzle-kit migrate`.** Schema changes are applied directly to the database by the user, not via generated migrations.
 
 ## Storage Adapters
 
