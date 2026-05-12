@@ -9,6 +9,7 @@ import { FolderService } from '../../services/FolderService.service';
 import { S3StorageAdapter } from '../../adapters/storage/S3Storage.adapter';
 import { StatsService } from '../../services/StatsService.service';
 import { ThumbnailService } from '../../services/ThumbnailService.service';
+import { TrashService } from '../../services/TrashService.service';
 
 let storageInstance: StoragePort | null = null;
 let fileRepositoryInstance: FileRepositoryPort | null = null;
@@ -61,4 +62,8 @@ export function createFolderService(): FolderService {
 
 export function createStatsService(): StatsService {
   return new StatsService();
+}
+
+export function createTrashService(): TrashService {
+  return new TrashService(getFileRepository(), getFolderRepository(), getStorage());
 }

@@ -2,7 +2,7 @@ import { FolderEntity, FolderRepositoryPort } from '../ports/repository/FolderRe
 
 import { FileRepositoryPort } from '../ports/repository/FileRepository.port';
 import { StoragePort } from '../ports/storage/Storage.port';
-import { wrapRepositoryError } from '../errors';
+import { wrapRepositoryError, wrapStorageError } from '../errors';
 
 export interface CreateFolderParams {
   id: string;
@@ -52,10 +52,20 @@ export class FolderService {
   async deleteFolder(id: string, userId: string): Promise<void> {
     try {
       const folderIds = await this.collectFolderIds(id, userId);
-      await this.deleteFilesInFolders(folderIds, userId);
+      for (const folderId of folderIds) {
+        await this.folderRepository.moveToTrash(folderId, userId);
+      }
+    } catch (error) {
+      throw wrapRepositoryError(error);
+    }
+  }
+
+  async permanentDeleteFolder(id: string, userId: string): Promise<void> {
+    try {
+      const folderIds = await this.collectFolderIds(id, userId);
+      await this.permanentDeleteFilesInFolders(folderIds, userId);
       await this.deleteFoldersFromDb(folderIds, userId);
     } catch (error) {
-      if (error instanceof Error && error.constructor.name === 'StorageError') throw error;
       throw wrapRepositoryError(error);
     }
   }
@@ -76,7 +86,7 @@ export class FolderService {
     return ids;
   }
 
-  private async deleteFilesInFolders(folderIds: string[], userId: string): Promise<void> {
+  private async permanentDeleteFilesInFolders(folderIds: string[], userId: string): Promise<void> {
     for (const folderId of folderIds) {
       const files = await this.fileRepository.findByUserId(userId, folderId);
       for (const file of files) {
@@ -84,14 +94,14 @@ export class FolderService {
         if (file.thumbnailKey) {
           await this.storage.delete(file.thumbnailKey).catch(() => {});
         }
-        await this.fileRepository.delete(file.id, userId);
+        await this.fileRepository.permanentDelete(file.id, userId);
       }
     }
   }
 
   private async deleteFoldersFromDb(folderIds: string[], userId: string): Promise<void> {
     for (let i = folderIds.length - 1; i >= 0; i--) {
-      await this.folderRepository.delete(folderIds[i], userId);
+      await this.folderRepository.permanentDelete(folderIds[i], userId);
     }
   }
 }

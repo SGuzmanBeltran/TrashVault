@@ -94,12 +94,22 @@ export class FileService {
     try {
       const file = await this.fileRepository.findById(id, userId);
       if (!file) return;
+      await this.fileRepository.moveToTrash(id, userId);
+    } catch (error) {
+      throw wrapRepositoryError(error);
+    }
+  }
 
-      await this.storage.delete(file.key);
+  async permanentDeleteFile(id: string, userId: string): Promise<void> {
+    try {
+      const file = await this.fileRepository.findById(id, userId);
+      if (!file) return;
+
+      await this.storage.delete(file.key).catch(() => {});
       if (file.thumbnailKey) {
         await this.storage.delete(file.thumbnailKey).catch(() => {});
       }
-      await this.fileRepository.delete(id, userId);
+      await this.fileRepository.permanentDelete(id, userId);
     } catch (error) {
       if (error instanceof StorageError) throw error;
       throw wrapRepositoryError(error);
