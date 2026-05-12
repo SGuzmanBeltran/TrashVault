@@ -11,9 +11,11 @@ import {
   FolderPlus,
   Home,
   UploadCloud,
+  FolderUp,
 } from 'lucide-vue-next'
 import { useFileStore } from '@/stores/files'
 import { useUploadQueue } from '@/composables/useUploadQueue'
+import { useFolderService } from '@/services'
 import FileCard from '@/components/FileCard.vue'
 import FolderCard from '@/components/FolderCard.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
@@ -22,11 +24,13 @@ import type { FileViewMode } from '@/domain/types'
 const router = useRouter()
 const fileStore = useFileStore()
 const uploadQueue = useUploadQueue()
+const folderService = useFolderService()
 
 const viewMode = ref<FileViewMode>('grid')
 const showNewFolder = ref(false)
 const newFolderName = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
+const folderInput = ref<HTMLInputElement | null>(null)
 const dragCounter = ref(0)
 const isDragging = computed(() => dragCounter.value > 0)
 
@@ -36,6 +40,10 @@ onMounted(() => {
 
 function triggerFileSelect() {
   fileInput.value?.click()
+}
+
+function triggerFolderSelect() {
+  folderInput.value?.click()
 }
 
 async function handleFileSelect(event: Event) {
@@ -48,6 +56,59 @@ async function handleFileSelect(event: Event) {
   }
 
   target.value = ''
+}
+
+async function handleFolderSelect(event: Event) {
+  const target = event.target as HTMLInputElement
+  const selectedFiles = target.files
+  if (!selectedFiles || selectedFiles.length === 0) return
+
+  const entries = Array.from(selectedFiles)
+    .filter((file) => !isHiddenPath(file.webkitRelativePath))
+    .map((file) => ({ file, path: file.webkitRelativePath }))
+
+  await processFolderUpload(entries)
+  target.value = ''
+}
+
+function isHiddenPath(path: string): boolean {
+  return path.split('/').some((segment) => segment.startsWith('.'))
+}
+
+async function processFolderUpload(entries: { file: File; path: string }[]) {
+  const folderPaths = new Set<string>()
+
+  for (const { path } of entries) {
+    const parts = path.split('/')
+    for (let i = 1; i < parts.length; i++) {
+      folderPaths.add(parts.slice(0, i).join('/'))
+    }
+  }
+
+  const sorted = Array.from(folderPaths).sort(
+    (a, b) => a.split('/').length - b.split('/').length,
+  )
+
+  const pathToId = new Map<string, string>()
+
+  for (const path of sorted) {
+    const parts = path.split('/')
+    const name = parts[parts.length - 1]!
+    const parentPath = parts.slice(0, -1).join('/')
+    const parentId = parentPath ? pathToId.get(parentPath) ?? null : fileStore.currentFolderId
+
+    const folder = await folderService.createFolder(name, parentId)
+    pathToId.set(path, folder.id)
+  }
+
+  fileStore.loadFolder(fileStore.currentFolderId)
+
+  for (const { file, path } of entries) {
+    const parts = path.split('/')
+    const folderPath = parts.slice(0, -1).join('/')
+    const folderId = pathToId.get(folderPath) ?? fileStore.currentFolderId
+    uploadQueue.addUpload(file, folderId)
+  }
 }
 
 function handleOpenFolder(id: string) {
@@ -70,6 +131,41 @@ async function handleCreateFolder() {
   showNewFolder.value = false
 }
 
+async function readDirectoryEntries(
+  entry: FileSystemDirectoryEntry,
+): Promise<{ file: File; path: string }[]> {
+  const reader = entry.createReader()
+  const allEntries: { file: File; path: string }[] = []
+
+  async function readBatch(): Promise<void> {
+    const entries = await new Promise<FileSystemEntry[]>((resolve, reject) => {
+      reader.readEntries(resolve, reject)
+    })
+
+    if (entries.length === 0) return
+
+    for (const e of entries) {
+      if (e.name.startsWith('.')) continue
+
+      if (e.isFile) {
+        const file = await new Promise<File>((resolve, reject) => {
+          (e as FileSystemFileEntry).file(resolve, reject)
+        })
+        const path = e.fullPath.replace(/^\//, '')
+        allEntries.push({ file, path })
+      } else if (e.isDirectory) {
+        const nested = await readDirectoryEntries(e as FileSystemDirectoryEntry)
+        allEntries.push(...nested)
+      }
+    }
+
+    await readBatch()
+  }
+
+  await readBatch()
+  return allEntries
+}
+
 function onDragEnter(event: DragEvent) {
   event.preventDefault()
   dragCounter.value++
@@ -87,15 +183,41 @@ function onDragLeave(event: DragEvent) {
   dragCounter.value--
 }
 
-function onDrop(event: DragEvent) {
+async function onDrop(event: DragEvent) {
   event.preventDefault()
   dragCounter.value = 0
 
-  const droppedFiles = event.dataTransfer?.files
-  if (!droppedFiles || droppedFiles.length === 0) return
+  const items = event.dataTransfer?.items
+  if (!items || items.length === 0) return
 
-  for (const file of droppedFiles) {
-    uploadQueue.addUpload(file)
+  const entries: FileSystemEntry[] = []
+  for (const item of items) {
+    const entry = item.webkitGetAsEntry?.()
+    if (entry) entries.push(entry)
+  }
+
+  const hasDirectories = entries.some((e) => e.isDirectory)
+
+  if (hasDirectories) {
+    const allEntries: { file: File; path: string }[] = []
+    for (const entry of entries) {
+      if (entry.isDirectory) {
+        const files = await readDirectoryEntries(entry as FileSystemDirectoryEntry)
+        allEntries.push(...files)
+      } else if (entry.isFile) {
+        const file = await new Promise<File>((resolve, reject) => {
+          (entry as FileSystemFileEntry).file(resolve, reject)
+        })
+        allEntries.push({ file, path: file.name })
+      }
+    }
+    await processFolderUpload(allEntries)
+  } else {
+    const droppedFiles = event.dataTransfer?.files
+    if (!droppedFiles) return
+    for (const file of droppedFiles) {
+      uploadQueue.addUpload(file)
+    }
   }
 }
 </script>
@@ -119,7 +241,7 @@ function onDrop(event: DragEvent) {
           </div>
           <div class="text-center">
             <p class="text-lg font-medium text-surface-fg">
-              Drop files to upload
+              Drop files or folders to upload
             </p>
             <p class="mt-1 text-sm text-surface-fg-muted">
               Files will be uploaded to the current folder
@@ -145,6 +267,13 @@ function onDrop(event: DragEvent) {
           New Folder
         </button>
         <button
+          class="flex items-center gap-2 rounded-lg border border-surface-border bg-surface-raised px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+          @click="triggerFolderSelect"
+        >
+          <FolderUp class="h-4 w-4" />
+          Folder
+        </button>
+        <button
           class="flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-fg transition-all hover:brightness-110 active:scale-[0.98]"
           @click="triggerFileSelect"
         >
@@ -157,6 +286,15 @@ function onDrop(event: DragEvent) {
           multiple
           class="hidden"
           @change="handleFileSelect"
+        />
+        <input
+          ref="folderInput"
+          type="file"
+          multiple
+          webkitdirectory
+          mozdirectory
+          class="hidden"
+          @change="handleFolderSelect"
         />
       </div>
     </div>

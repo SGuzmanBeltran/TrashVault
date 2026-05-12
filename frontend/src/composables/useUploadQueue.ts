@@ -26,7 +26,7 @@ export function useUploadQueue() {
 
   const hasUploads = computed(() => uploads.value.length > 0)
 
-  function addUpload(file: File): string {
+  function addUpload(file: File, folderId?: string | null): string {
     const id = `upload-${++idCounter}`
     const aborter = new AbortController()
 
@@ -41,7 +41,7 @@ export function useUploadQueue() {
     uploads.value.push(item)
 
     fileService
-      .uploadFileWithProgress(file, fileStore.currentFolderId, {
+      .uploadFileWithProgress(file, folderId ?? fileStore.currentFolderId, {
         onProgress: (progress) => {
           const found = uploads.value.find((u) => u.id === id)
           if (found) found.progress = progress

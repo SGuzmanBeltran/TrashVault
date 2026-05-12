@@ -1,6 +1,10 @@
 import { StoragePort } from '../ports/storage/Storage.port'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
+import { writeFile, readFile, unlink } from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { randomUUID } from 'crypto'
 import sharp from 'sharp'
 import { ServiceError, wrapStorageError } from '../errors'
 
@@ -52,37 +56,35 @@ export class ThumbnailService {
   }
 
   async generateVideoThumbnail(buffer: ArrayBuffer): Promise<ArrayBuffer> {
+    const inputPath = join(tmpdir(), `tv-in-${randomUUID()}`)
+    const outputPath = join(tmpdir(), `tv-out-${randomUUID()}.jpg`)
+
     try {
-      const { stdout } = await execFileAsync(
+      await writeFile(inputPath, Buffer.from(buffer))
+
+      await execFileAsync(
         'ffmpeg',
         [
-          '-i',
-          'pipe:0',
-          '-ss',
-          '00:00:01',
-          '-vframes',
-          '1',
-          '-f',
-          'image2pipe',
-          '-vcodec',
-          'mjpeg',
-          '-q:v',
-          '5',
-          '-loglevel',
-          'error',
-          'pipe:1',
+          '-i', inputPath,
+          '-ss', '00:00:01',
+          '-vframes', '1',
+          '-f', 'image2pipe',
+          '-vcodec', 'mjpeg',
+          '-q:v', '5',
+          '-loglevel', 'error',
+          outputPath,
         ],
-        {
-          input: Buffer.from(buffer),
-          maxBuffer: 50 * 1024 * 1024,
-          encoding: 'buffer' as BufferEncoding,
-        },
+        { timeout: 30_000 },
       )
 
-      return stdout.buffer
+      const output = await readFile(outputPath)
+      return output.buffer
     } catch (error) {
       if (error instanceof ServiceError) throw error;
       throw new ServiceError(500, 'Failed to generate video thumbnail');
+    } finally {
+      await unlink(inputPath).catch(() => {})
+      await unlink(outputPath).catch(() => {})
     }
   }
 
@@ -98,10 +100,10 @@ export class ThumbnailService {
     try {
       let thumbnailBuffer: ArrayBuffer
 
-      if (IMAGE_MIMES.has(mimeType)) {
-        thumbnailBuffer = await this.generateImageThumbnail(buffer)
-      } else if (VIDEO_MIMES.has(mimeType)) {
+      if (VIDEO_MIMES.has(mimeType)) {
         thumbnailBuffer = await this.generateVideoThumbnail(buffer)
+      } else if (IMAGE_MIMES.has(mimeType)) {
+        thumbnailBuffer = await this.generateImageThumbnail(buffer)
       } else {
         return null
       }
@@ -114,7 +116,7 @@ export class ThumbnailService {
       }
       return thumbnailKey
     } catch (error) {
-      console.warn('Thumbnail generation failed:', error)
+      console.warn(`Thumbnail generation failed for ${mimeType}:`, error instanceof Error ? error.message : error)
       return null
     }
   }

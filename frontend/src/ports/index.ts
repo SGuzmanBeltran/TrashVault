@@ -35,3 +35,12 @@ export interface AuthPort {
 export interface StatsPort {
   getStats(): Promise<StorageStats>
 }
+
+export interface TrashPort {
+  getTrash(): Promise<{ files: FileItem[]; folders: Folder[] }>
+  restoreFile(id: string): Promise<void>
+  restoreFolder(id: string): Promise<void>
+  permanentDeleteFile(id: string): Promise<void>
+  permanentDeleteFolder(id: string): Promise<void>
+  emptyTrash(): Promise<void>
+}
