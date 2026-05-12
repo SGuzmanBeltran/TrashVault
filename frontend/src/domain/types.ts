@@ -12,6 +12,7 @@ export interface FileItem {
   mimeType: string
   size: number
   folderId: string | null
+  thumbnailKey: string | null
   createdAt: string
   updatedAt: string
 }

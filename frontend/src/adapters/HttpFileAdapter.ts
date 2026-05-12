@@ -9,6 +9,7 @@ interface BackendFileItem {
   mimeType: string
   size: number
   folderId: string | null
+  thumbnailKey: string | null
   createdAt: string
 }
 
@@ -20,6 +21,7 @@ function mapFile(item: BackendFileItem): FileItem {
     mimeType: item.mimeType,
     size: item.size,
     folderId: item.folderId,
+    thumbnailKey: item.thumbnailKey ?? null,
     createdAt,
     updatedAt: createdAt,
   }
@@ -44,6 +46,15 @@ export class HttpFileAdapter implements FilePort {
   async getDownloadUrl(id: string): Promise<string> {
     const { url } = await apiFetch<{ url: string }>(`/files/${id}/download`)
     return url
+  }
+
+  async getThumbnailUrl(id: string): Promise<string | null> {
+    try {
+      const { url } = await apiFetch<{ url: string }>(`/files/${id}/thumbnail`)
+      return url
+    } catch {
+      return null
+    }
   }
 
   async uploadFile(file: File, folderId: string | null): Promise<FileItem> {

@@ -10,6 +10,7 @@ export interface FilePort {
   getFile(id: string): Promise<FileItem>
   deleteFile(id: string): Promise<void>
   getDownloadUrl(id: string): Promise<string>
+  getThumbnailUrl(id: string): Promise<string | null>
   uploadFile(file: File, folderId: string | null): Promise<FileItem>
   uploadFileWithProgress(
     file: File,

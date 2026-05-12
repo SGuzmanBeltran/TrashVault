@@ -12,8 +12,9 @@ import {
   Download,
   Trash2,
   Eye,
+  Play,
 } from 'lucide-vue-next'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { FileItem } from '@/domain/types'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
 import { useFileService } from '@/services'
@@ -32,6 +33,29 @@ const emit = defineEmits<{
 
 const fileService = useFileService()
 const showMenu = ref(false)
+const thumbnailUrl = ref<string | null>(null)
+const thumbnailError = ref(false)
+const downloadUrl = ref<string | null>(null)
+const isDragging = ref(false)
+const isImageLike = computed(() => props.file.mimeType.startsWith('image/'))
+const isVideoLike = computed(() => props.file.mimeType.startsWith('video/'))
+const showThumbnail = computed(
+  () => (isImageLike.value || isVideoLike.value) && !thumbnailError.value,
+)
+
+watch(
+  () => props.file.thumbnailKey,
+  async (key) => {
+    if (key) {
+      try {
+        thumbnailUrl.value = await fileService.getThumbnailUrl(props.file.id)
+      } catch {
+        thumbnailError.value = true
+      }
+    }
+  },
+  { immediate: true },
+)
 
 async function downloadFile() {
   try {
@@ -41,6 +65,28 @@ async function downloadFile() {
     const message = error instanceof Error ? error.message : 'Failed to get download URL'
     toast.error(message)
   }
+}
+
+async function onMouseDown() {
+  if (!downloadUrl.value) {
+    try {
+      downloadUrl.value = await fileService.getDownloadUrl(props.file.id)
+    } catch {
+      downloadUrl.value = null
+    }
+  }
+}
+
+function onDragStart(event: DragEvent) {
+  if (!downloadUrl.value || !event.dataTransfer) return
+  event.dataTransfer.effectAllowed = 'copy'
+  const downloadData = `${props.file.mimeType}:${props.file.name}:${downloadUrl.value}`
+  event.dataTransfer.setData('DownloadURL', downloadData)
+  isDragging.value = true
+}
+
+function onDragEnd() {
+  isDragging.value = false
 }
 
 const iconMap: Record<string, typeof File> = {
@@ -86,15 +132,26 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
 <template>
   <div
     class="group relative flex flex-col rounded-xl border border-surface-border bg-surface-raised p-4 transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/10"
-    :class="selected ? 'border-accent/40 ring-1 ring-accent/20' : ''"
+    :class="[
+      selected ? 'border-accent/40 ring-1 ring-accent/20' : '',
+      isDragging ? 'opacity-50 ring-1 ring-accent/40' : '',
+    ]" draggable="true"
     @click="emit('select', file.id)"
+@mousedown="onMouseDown" @dragstart="onDragStart"
+    @dragend="onDragEnd"
   >
     <div class="flex items-start justify-between">
       <div
-        class="flex h-11 w-11 items-center justify-center rounded-lg transition-colors"
-        :class="iconBg"
-      >
-        <component :is="iconComponent" class="h-5 w-5" :class="iconColor" />
+class="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg transition-colors"
+        :class="showThumbnail ? '' : iconBg">
+        <img v-if="showThumbnail && thumbnailUrl" :src="thumbnailUrl" :alt="file.name"
+          class="h-full w-full object-cover" loading="lazy" @error="thumbnailError = true"
+          @load="thumbnailError = false" />
+        <component v-else :is="iconComponent" class="h-5 w-5" :class="iconColor" />
+        <div v-if="showThumbnail && isVideoLike"
+          class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/20">
+          <Play class="h-4 w-4 text-white" fill="currentColor" />
+        </div>
       </div>
 
       <div class="relative">

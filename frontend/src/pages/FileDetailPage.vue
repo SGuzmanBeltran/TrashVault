@@ -29,6 +29,16 @@ const fileService = useFileService()
 
 const file = ref<FileItem | null>(null)
 const isLoading = ref(true)
+const thumbnailUrl = ref<string | null>(null)
+const thumbnailError = ref(false)
+const downloadUrl = ref<string | null>(null)
+const isDragging = ref(false)
+
+const isImageLike = computed(() => file.value?.mimeType.startsWith('image/') ?? false)
+const isVideoLike = computed(() => file.value?.mimeType.startsWith('video/') ?? false)
+const showThumbnail = computed(
+  () => (isImageLike.value || isVideoLike.value) && !thumbnailError.value,
+)
 
 const iconMap: Record<string, Component> = {
   'file-text': FileText,
@@ -55,6 +65,13 @@ const iconColorMap: Record<string, string> = {
 onMounted(async () => {
   try {
     file.value = await fileService.getFile(route.params.id as string)
+    if (file.value?.thumbnailKey) {
+      try {
+        thumbnailUrl.value = await fileService.getThumbnailUrl(file.value.id)
+      } catch {
+        thumbnailError.value = true
+      }
+    }
   } finally {
     isLoading.value = false
   }
@@ -72,6 +89,27 @@ async function downloadFile() {
     const message = error instanceof Error ? error.message : 'Failed to get download URL'
     toast.error(message)
   }
+}
+
+async function onMouseDown() {
+  if (!file.value || downloadUrl.value) return
+  try {
+    downloadUrl.value = await fileService.getDownloadUrl(file.value.id)
+  } catch {
+    downloadUrl.value = null
+  }
+}
+
+function onDragStart(event: DragEvent) {
+  if (!file.value || !downloadUrl.value || !event.dataTransfer) return
+  event.dataTransfer.effectAllowed = 'copy'
+  const downloadData = `${file.value.mimeType}:${file.value.name}:${downloadUrl.value}`
+  event.dataTransfer.setData('DownloadURL', downloadData)
+  isDragging.value = true
+}
+
+function onDragEnd() {
+  isDragging.value = false
 }
 </script>
 
@@ -92,13 +130,29 @@ async function downloadFile() {
     </div>
 
     <template v-else-if="file">
-      <div class="animate-in rounded-2xl border border-surface-border bg-surface-raised p-8">
+      <div
+        class="animate-in rounded-2xl border border-surface-border bg-surface-raised p-8 transition-all duration-200"
+        :class="isDragging ? 'opacity-50 ring-1 ring-accent/40' : ''"
+        draggable="true"
+        @mousedown="onMouseDown"
+        @dragstart="onDragStart"
+        @dragend="onDragEnd"
+      >
         <div class="flex flex-col items-center text-center">
           <div
-            class="flex h-16 w-16 items-center justify-center rounded-2xl"
-            :class="iconClasses"
+            class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl"
+            :class="showThumbnail ? '' : iconClasses"
           >
+            <img
+              v-if="showThumbnail && thumbnailUrl"
+              :src="thumbnailUrl"
+              :alt="file.name"
+              class="h-full w-full object-cover"
+              @error="thumbnailError = true"
+              @load="thumbnailError = false"
+            />
             <component
+              v-else
               :is="iconMap[iconType] ?? File"
               class="h-7 w-7"
             />
