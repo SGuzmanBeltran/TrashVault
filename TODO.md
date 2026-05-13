@@ -83,17 +83,17 @@ folders {
 
 **Backend**
 
-- [ ] Add `user_encryption_keys` table (schema + relations)
-- [ ] Add `isEncrypted` column to `files` table
-- [ ] `EncryptionKeyRepository` port + Drizzle adapter
-- [ ] `EncryptionKeyService` (create, get, update)
-- [ ] `EncryptionKeyRoutes` (POST/GET/PUT `/api/user/encryption-key`)
-- [ ] Read `isEncrypted` from form data in upload route, store in DB
+- [x] Add `user_encryption_keys` table (schema + relations)
+- [x] Add `isEncrypted` column to `files` table
+- [x] `EncryptionKeyRepository` port + Drizzle adapter
+- [x] `EncryptionKeyService` (create, get, update)
+- [x] `EncryptionKeyRoutes` (POST/GET/PUT `/api/user/encryption-key`)
+- [x] Read `isEncrypted` from form data in upload route, store in DB
 
 **Frontend — Crypto Layer**
 
-- [ ] Install `hash-wasm` (Argon2id WASM)
-- [ ] `lib/crypto.ts` — deriveKek, generateDek, encryptDek, decryptDek, encryptFile, decryptFile
+- [x] Install `hash-wasm` (Argon2id WASM)
+- [x] `lib/crypto.ts` — deriveKek, generateDek, encryptDek, decryptDek, encryptFile, decryptFile
 
 **Frontend — Vault Store**
 
