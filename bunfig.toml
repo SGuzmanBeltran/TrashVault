@@ -1,0 +1,17 @@
+[install]
+# Block all lifecycle scripts by default (postinstall, preinstall, etc.)
+# Packages that need scripts must be added to trustedDependencies in package.json
+ignoreScripts = true
+
+# Security scanner configuration
+# Bun's security scanner API allows third-party security scanners to integrate
+# with the package installation process. No official scanner exists yet.
+# 
+# Options:
+# 1. Use `bun audit` periodically to check for known vulnerabilities
+# 2. Create your own scanner using the template: https://github.com/oven-sh/security-scanner-template
+# 3. Wait for third-party security companies to publish scanners
+#
+# When a scanner is available, configure it here:
+# [install.security]
+# scanner = "@your-org/bun-security-scanner"
