@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import {
   ChevronRight,
   Plus,
@@ -19,9 +18,9 @@ import { useFolderService } from '@/services'
 import FileCard from '@/components/FileCard.vue'
 import FolderCard from '@/components/FolderCard.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
-import type { FileViewMode } from '@/domain/types'
+import FilePreviewModal from '@/components/FilePreviewModal.vue'
+import type { FileViewMode, FileItem } from '@/domain/types'
 
-const router = useRouter()
 const fileStore = useFileStore()
 const uploadQueue = useUploadQueue()
 const folderService = useFolderService()
@@ -33,6 +32,7 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const folderInput = ref<HTMLInputElement | null>(null)
 const dragCounter = ref(0)
 const isDragging = computed(() => dragCounter.value > 0)
+const previewFile = ref<FileItem | null>(null)
 
 onMounted(() => {
   fileStore.loadFolder(null)
@@ -120,8 +120,8 @@ function handleBreadcrumb(id: string | null, name: string) {
   fileStore.navigateToFolder(id, name)
 }
 
-function handlePreviewFile(file: { id: string }) {
-  router.push(`/files/${file.id}`)
+function handlePreviewFile(file: FileItem) {
+  previewFile.value = file
 }
 
 async function handleCreateFolder() {
@@ -223,6 +223,11 @@ async function onDrop(event: DragEvent) {
 </script>
 
 <template>
+  <FilePreviewModal
+    v-if="previewFile"
+    :file="previewFile"
+    @close="previewFile = null"
+  />
   <div
     class="relative mx-auto min-h-full max-w-5xl space-y-6"
     @dragenter="onDragEnter"

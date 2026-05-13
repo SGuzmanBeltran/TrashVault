@@ -123,7 +123,7 @@ folders {
 
 ## Semana 2 — Polish
 
-- [ ] Preview de imágenes
+- [x] Preview de imágenes
 - [x] Carpetas (crear, navegar, eliminar)
 - [x] Descargar archivos
 - [x] Manejo de errores con UI copada
