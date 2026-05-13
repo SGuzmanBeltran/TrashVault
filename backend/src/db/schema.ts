@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 export const files = pgTable('files', {
 	id: text('id').primaryKey(),
@@ -10,7 +10,6 @@ export const files = pgTable('files', {
 	key: text('key').notNull(),
 	folderId: text('folder_id'),
 	thumbnailKey: text('thumbnail_key'),
-	isEncrypted: boolean('is_encrypted').default(false).notNull(),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	trashedAt: timestamp('trashed_at'),
 });

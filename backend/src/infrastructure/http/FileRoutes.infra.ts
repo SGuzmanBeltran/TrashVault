@@ -5,12 +5,7 @@ import { authMacro } from './auth.plugin';
 
 export const fileRoutes = new Elysia({ prefix: '/files' })
   .use(authMacro)
-  .post('/upload', async ({ user, body, set }) => {
-    if (body.isEncrypted !== 'true') {
-      set.status = 400;
-      return { error: 'All files must be encrypted' };
-    }
-
+  .post('/upload', async ({ user, body }) => {
     const fileService = createFileService();
     const uploadedFile = body.file;
     const buffer = await uploadedFile.arrayBuffer();
@@ -26,7 +21,6 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
       key,
       folderId: body.folderId || null,
       buffer,
-      isEncrypted: true,
       thumbnail: body.thumbnail ? await body.thumbnail.arrayBuffer() : null,
     });
   }, {
@@ -34,7 +28,6 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
     body: t.Object({
       file: t.File(),
       folderId: t.Optional(t.String()),
-      isEncrypted: t.String(),
       thumbnail: t.Optional(t.File()),
     }),
     auth: true,
@@ -71,11 +64,15 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
   }, {
     auth: true,
   })
-  .get('/:id/thumbnail', async ({ user, params }) => {
+  .get('/:id/thumbnail', async ({ user, params, set }) => {
     const fileService = createFileService();
-    const url = await fileService.getThumbnailUrl(params.id, user!.id);
-    if (!url) return new Response('No thumbnail available', { status: 404 });
-    return { url };
+    const buffer = await fileService.getThumbnailBytes(params.id, user!.id);
+    if (!buffer) {
+      set.status = 404;
+      return { error: 'No thumbnail available' };
+    }
+    set.headers['content-type'] = 'application/octet-stream';
+    return new Response(buffer);
   }, {
     auth: true,
   })

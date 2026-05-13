@@ -13,7 +13,6 @@ interface BackendFileItem {
   size: number
   folderId: string | null
   thumbnailKey: string | null
-  isEncrypted: boolean
   createdAt: string
   trashedAt: string | null
 }
@@ -51,25 +50,28 @@ export class HttpFileAdapter implements FilePort {
 
   async downloadFile(id: string): Promise<{ blobUrl: string; filename: string; mimeType: string }> {
     const meta = await apiFetch<BackendFileItem>(`/files/${id}`)
-
     const vaultStore = useVaultStore()
-    if (meta.isEncrypted && vaultStore.dek) {
-      const resp = await fetch(`/api/files/${id}/bytes`, { credentials: 'include' })
-      if (!resp.ok) throw new Error('Failed to download file')
-      const ciphertext = await resp.arrayBuffer()
-      const plaintext = await decryptFile(ciphertext, vaultStore.dek)
-      const blob = new Blob([plaintext], { type: meta.mimeType })
-      return { blobUrl: URL.createObjectURL(blob), filename: meta.name, mimeType: meta.mimeType }
-    }
+    if (!vaultStore.dek) throw new Error('Vault is locked')
 
-    const { url } = await apiFetch<{ url: string }>(`/files/${id}/download`)
-    return { blobUrl: url, filename: meta.name, mimeType: meta.mimeType }
+    const resp = await fetch(`/api/files/${id}/bytes`, { credentials: 'include' })
+    if (!resp.ok) throw new Error('Failed to download file')
+    const ciphertext = await resp.arrayBuffer()
+    const plaintext = await decryptFile(ciphertext, vaultStore.dek)
+    const blob = new Blob([plaintext], { type: meta.mimeType })
+    return { blobUrl: URL.createObjectURL(blob), filename: meta.name, mimeType: meta.mimeType }
   }
 
   async getThumbnailUrl(id: string): Promise<string | null> {
+    const vaultStore = useVaultStore()
+    if (!vaultStore.dek) return null
+
     try {
-      const { url } = await apiFetch<{ url: string }>(`/files/${id}/thumbnail`)
-      return url
+      const resp = await fetch(`/api/files/${id}/thumbnail`, { credentials: 'include' })
+      if (!resp.ok) return null
+      const ciphertext = await resp.arrayBuffer()
+      const plaintext = await decryptFile(ciphertext, vaultStore.dek)
+      const blob = new Blob([plaintext], { type: 'image/jpeg' })
+      return URL.createObjectURL(blob)
     } catch {
       return null
     }
@@ -79,9 +81,16 @@ export class HttpFileAdapter implements FilePort {
     const vaultStore = useVaultStore()
     if (!vaultStore.dek) throw new Error('Vault is locked')
 
-    let thumbnail: Blob | null = null
+    let encryptedThumbnail: Blob | null = null
     if (canGenerateThumbnail(file.type)) {
-      try { thumbnail = await generateThumbnail(file) } catch { /* best-effort */ }
+      try {
+        const thumbnail = await generateThumbnail(file)
+        if (thumbnail) {
+          const thumbBuffer = await thumbnail.arrayBuffer()
+          const encryptedThumb = await encryptFile(thumbBuffer, vaultStore.dek)
+          encryptedThumbnail = new Blob([encryptedThumb])
+        }
+      } catch { /* best-effort */ }
     }
 
     const plaintext = await file.arrayBuffer()
@@ -91,12 +100,11 @@ export class HttpFileAdapter implements FilePort {
 
     const formData = new FormData()
     formData.append('file', encryptedFile)
-    formData.append('isEncrypted', 'true')
     if (folderId !== null) {
       formData.append('folderId', folderId)
     }
-    if (thumbnail) {
-      formData.append('thumbnail', new File([thumbnail], 'thumb.jpg', { type: 'image/jpeg' }))
+    if (encryptedThumbnail) {
+      formData.append('thumbnail', new File([encryptedThumbnail], 'thumb.jpg', { type: 'application/octet-stream' }))
     }
 
     const item = await apiFetch<BackendFileItem>('/files/upload', {
@@ -114,9 +122,16 @@ export class HttpFileAdapter implements FilePort {
     const vaultStore = useVaultStore()
     if (!vaultStore.dek) throw new Error('Vault is locked')
 
-    let thumbnail: Blob | null = null
+    let encryptedThumbnail: Blob | null = null
     if (canGenerateThumbnail(file.type)) {
-      try { thumbnail = await generateThumbnail(file) } catch { /* best-effort */ }
+      try {
+        const thumbnail = await generateThumbnail(file)
+        if (thumbnail) {
+          const thumbBuffer = await thumbnail.arrayBuffer()
+          const encryptedThumb = await encryptFile(thumbBuffer, vaultStore.dek)
+          encryptedThumbnail = new Blob([encryptedThumb])
+        }
+      } catch { /* best-effort */ }
     }
 
     const plaintext = await file.arrayBuffer()
@@ -124,8 +139,10 @@ export class HttpFileAdapter implements FilePort {
     const encryptedBlob = new Blob([ciphertext], { type: file.type })
     const encryptedFile = new File([encryptedBlob], file.name, { type: file.type })
 
-    const thumbFile = thumbnail ? new File([thumbnail], 'thumb.jpg', { type: 'image/jpeg' }) : undefined
-    const item = await uploadWithProgress(encryptedFile, folderId, callbacks, true, thumbFile)
+    const thumbFile = encryptedThumbnail
+      ? new File([encryptedThumbnail], 'thumb.jpg', { type: 'application/octet-stream' })
+      : undefined
+    const item = await uploadWithProgress(encryptedFile, folderId, callbacks, thumbFile)
     return mapFile(item)
   }
 }

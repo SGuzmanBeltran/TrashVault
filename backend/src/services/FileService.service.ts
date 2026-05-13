@@ -14,7 +14,6 @@ export interface CreateFileParams {
   key: string;
   folderId: string | null;
   buffer: ArrayBuffer;
-  isEncrypted: boolean;
   thumbnail: ArrayBuffer | null;
 }
 
@@ -40,16 +39,6 @@ export class FileService {
       } catch {
         thumbnailKey = null;
       }
-    } else if (!params.isEncrypted) {
-      try {
-        thumbnailKey = await this.thumbnailService.generateAndUpload(
-          params.buffer,
-          params.mimeType,
-          params.key,
-        );
-      } catch {
-        thumbnailKey = null;
-      }
     }
 
     try {
@@ -63,7 +52,6 @@ export class FileService {
         key: params.key,
         folderId: params.folderId,
         thumbnailKey,
-        isEncrypted: params.isEncrypted,
         createdAt: new Date(),
         trashedAt: null,
       });
@@ -144,6 +132,17 @@ export class FileService {
       if (!file) return null;
       const buffer = await this.storage.download(file.key);
       return { buffer, mimeType: file.mimeType };
+    } catch (error) {
+      if (error instanceof StorageError) throw error;
+      throw wrapRepositoryError(error);
+    }
+  }
+
+  async getThumbnailBytes(id: string, userId: string): Promise<ArrayBuffer | null> {
+    try {
+      const file = await this.fileRepository.findById(id, userId);
+      if (!file || !file.thumbnailKey) return null;
+      return this.storage.download(file.thumbnailKey);
     } catch (error) {
       if (error instanceof StorageError) throw error;
       throw wrapRepositoryError(error);

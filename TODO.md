@@ -84,11 +84,11 @@ folders {
 **Backend**
 
 - [x] Add `user_encryption_keys` table (schema + relations)
-- [x] Add `isEncrypted` column to `files` table
 - [x] `EncryptionKeyRepository` port + Drizzle adapter
 - [x] `EncryptionKeyService` (create, get, update)
 - [x] `EncryptionKeyRoutes` (POST/GET/PUT `/api/user/encryption-key`)
-- [x] Read `isEncrypted` from form data in upload route, store in DB
+- [x] `/files/:id/bytes` endpoint (proxy file from R2, avoids CORS)
+- [x] Accept thumbnail in upload form data
 
 **Frontend — Crypto Layer**
 
@@ -113,6 +113,7 @@ folders {
 - [x] Encrypt files before upload (HttpFileAdapter)
 - [x] Decrypt files on download (fetch + decrypt + Blob URL)
 - [x] Skip thumbnail generation for encrypted files (backend)
+- [x] Client-side thumbnail generation for encrypted files (canvas API)
 
 **Frontend — UI**
 
