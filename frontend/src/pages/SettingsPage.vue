@@ -4,10 +4,11 @@ import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { Palette, Shield, Bell, Lock, HardDrive, Eye, EyeOff } from 'lucide-vue-next'
 import type { AccentColor } from '@/domain/types'
-import { toast } from 'vue-sonner'
+import { useNotificationStore } from '@/stores/notification'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
+const notify = useNotificationStore()
 
 const showPasswordForm = ref(false)
 const oldPassword = ref('')
@@ -38,7 +39,7 @@ async function handleChangePassword() {
 
   try {
     await authStore.changePassword(oldPassword.value, newPassword.value)
-    toast.success('Password updated')
+    notify.success('Password updated')
     showPasswordForm.value = false
     oldPassword.value = ''
     newPassword.value = ''

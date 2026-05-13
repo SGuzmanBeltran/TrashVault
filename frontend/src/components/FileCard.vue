@@ -19,7 +19,7 @@ import type { FileItem } from '@/domain/types'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
 import { useFileService } from '@/services'
 import { useVaultStore } from '@/stores/vault'
-import { toast } from 'vue-sonner'
+import { useNotificationStore } from '@/stores/notification'
 
 const props = defineProps<{
   file: FileItem
@@ -34,6 +34,7 @@ const emit = defineEmits<{
 
 const fileService = useFileService()
 const vaultStore = useVaultStore()
+const notify = useNotificationStore()
 const showMenu = ref(false)
 const thumbnailUrl = ref<string | null>(null)
 const thumbnailError = ref(false)
@@ -76,7 +77,7 @@ async function downloadFile() {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to download file'
-    toast.error(message)
+    notify.error(message)
   }
 }
 

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { Toaster } from 'vue-sonner'
 import UploadPanel from '@/components/UploadPanel.vue'
 import VaultUnlockModal from '@/components/VaultUnlockModal.vue'
+import NotificationPanel from '@/components/NotificationPanel.vue'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useVaultStore } from '@/stores/vault'
@@ -18,7 +18,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Toaster position="bottom-right" rich-colors />
+  <NotificationPanel />
   <VaultUnlockModal v-if="authStore.isAuthenticated && !vaultStore.isUnlocked" />
   <UploadPanel />
   <RouterView />
