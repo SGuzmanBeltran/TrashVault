@@ -83,10 +83,16 @@ const iconClasses = computed(() => iconColorMap[iconType.value] ?? 'text-surface
 async function downloadFile() {
   if (!file.value) return
   try {
-    const url = await fileService.getDownloadUrl(file.value.id)
-    window.open(url, '_blank')
+    const result = await fileService.downloadFile(file.value.id)
+    const a = document.createElement('a')
+    a.href = result.blobUrl
+    a.download = result.filename
+    a.click()
+    if (result.blobUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(result.blobUrl)
+    }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to get download URL'
+    const message = error instanceof Error ? error.message : 'Failed to download file'
     toast.error(message)
   }
 }
@@ -94,7 +100,8 @@ async function downloadFile() {
 async function onMouseDown() {
   if (!file.value || downloadUrl.value) return
   try {
-    downloadUrl.value = await fileService.getDownloadUrl(file.value.id)
+    const result = await fileService.downloadFile(file.value.id)
+    downloadUrl.value = result.blobUrl
   } catch {
     downloadUrl.value = null
   }

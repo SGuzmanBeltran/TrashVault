@@ -2,6 +2,8 @@ import type { FilePort, UploadProgressCallbacks } from '@/ports'
 import type { FileItem } from '@/domain/types'
 import { apiFetch } from '@/lib/api-fetch'
 import { uploadWithProgress } from '@/lib/xhr-upload'
+import { encryptFile, decryptFile } from '@/lib/crypto'
+import { useVaultStore } from '@/stores/vault'
 
 interface BackendFileItem {
   id: string
@@ -10,6 +12,7 @@ interface BackendFileItem {
   size: number
   folderId: string | null
   thumbnailKey: string | null
+  isEncrypted: boolean
   createdAt: string
   trashedAt: string | null
 }
@@ -45,9 +48,20 @@ export class HttpFileAdapter implements FilePort {
     await apiFetch(`/files/${id}`, { method: 'DELETE' })
   }
 
-  async getDownloadUrl(id: string): Promise<string> {
+  async downloadFile(id: string): Promise<{ blobUrl: string; filename: string; mimeType: string }> {
+    const meta = await apiFetch<BackendFileItem>(`/files/${id}`)
     const { url } = await apiFetch<{ url: string }>(`/files/${id}/download`)
-    return url
+
+    const vaultStore = useVaultStore()
+    if (meta.isEncrypted && vaultStore.dek) {
+      const resp = await fetch(url)
+      const ciphertext = await resp.arrayBuffer()
+      const plaintext = await decryptFile(ciphertext, vaultStore.dek)
+      const blob = new Blob([plaintext], { type: meta.mimeType })
+      return { blobUrl: URL.createObjectURL(blob), filename: meta.name, mimeType: meta.mimeType }
+    }
+
+    return { blobUrl: url, filename: meta.name, mimeType: meta.mimeType }
   }
 
   async getThumbnailUrl(id: string): Promise<string | null> {
@@ -60,6 +74,28 @@ export class HttpFileAdapter implements FilePort {
   }
 
   async uploadFile(file: File, folderId: string | null): Promise<FileItem> {
+    const vaultStore = useVaultStore()
+
+    if (vaultStore.dek) {
+      const plaintext = await file.arrayBuffer()
+      const ciphertext = await encryptFile(plaintext, vaultStore.dek)
+      const encryptedBlob = new Blob([ciphertext], { type: file.type })
+      const encryptedFile = new File([encryptedBlob], file.name, { type: file.type })
+
+      const formData = new FormData()
+      formData.append('file', encryptedFile)
+      formData.append('isEncrypted', 'true')
+      if (folderId !== null) {
+        formData.append('folderId', folderId)
+      }
+
+      const item = await apiFetch<BackendFileItem>('/files/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      return mapFile(item)
+    }
+
     const formData = new FormData()
     formData.append('file', file)
     if (folderId !== null) {
@@ -70,7 +106,6 @@ export class HttpFileAdapter implements FilePort {
       method: 'POST',
       body: formData,
     })
-
     return mapFile(item)
   }
 
@@ -79,6 +114,18 @@ export class HttpFileAdapter implements FilePort {
     folderId: string | null,
     callbacks: UploadProgressCallbacks,
   ): Promise<FileItem> {
+    const vaultStore = useVaultStore()
+
+    if (vaultStore.dek) {
+      const plaintext = await file.arrayBuffer()
+      const ciphertext = await encryptFile(plaintext, vaultStore.dek)
+      const encryptedBlob = new Blob([ciphertext], { type: file.type })
+      const encryptedFile = new File([encryptedBlob], file.name, { type: file.type })
+
+      const item = await uploadWithProgress(encryptedFile, folderId, callbacks, true)
+      return mapFile(item)
+    }
+
     const item = await uploadWithProgress(file, folderId, callbacks)
     return mapFile(item)
   }

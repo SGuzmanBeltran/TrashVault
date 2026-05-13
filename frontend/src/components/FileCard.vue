@@ -59,10 +59,16 @@ watch(
 
 async function downloadFile() {
   try {
-    const url = await fileService.getDownloadUrl(props.file.id)
-    window.open(url, '_blank')
+    const result = await fileService.downloadFile(props.file.id)
+    const a = document.createElement('a')
+    a.href = result.blobUrl
+    a.download = result.filename
+    a.click()
+    if (result.blobUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(result.blobUrl)
+    }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to get download URL'
+    const message = error instanceof Error ? error.message : 'Failed to download file'
     toast.error(message)
   }
 }
@@ -70,7 +76,8 @@ async function downloadFile() {
 async function onMouseDown() {
   if (!downloadUrl.value) {
     try {
-      downloadUrl.value = await fileService.getDownloadUrl(props.file.id)
+      const result = await fileService.downloadFile(props.file.id)
+      downloadUrl.value = result.blobUrl
     } catch {
       downloadUrl.value = null
     }
