@@ -114,13 +114,7 @@ async function downloadFile() {
 }
 
 async function onMouseDown() {
-  if (!file.value || downloadUrl.value) return
-  try {
-    const result = await fileService.downloadFile(file.value.id)
-    downloadUrl.value = result.blobUrl
-  } catch {
-    downloadUrl.value = null
-  }
+  // Preload download URL only on drag, not on regular click
 }
 
 function onDragStart(event: DragEvent) {
