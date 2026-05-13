@@ -14,6 +14,10 @@ import { formatBytes } from '@/utils'
 const route = useRoute()
 const statsStore = useStatsStore()
 
+const emit = defineEmits<{
+  navigate: []
+}>()
+
 onMounted(() => {
   statsStore.loadStats()
 })
@@ -37,7 +41,7 @@ const storageLabel = () => {
 </script>
 
 <template>
-  <aside class="flex w-60 flex-col border-r border-surface-border bg-surface-raised">
+  <aside class="flex h-full w-60 flex-col border-r border-surface-border bg-surface-raised">
     <div class="flex items-center gap-2.5 px-5 py-5">
       <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15">
         <Shield class="h-4.5 w-4.5 text-accent" />
@@ -58,6 +62,7 @@ const storageLabel = () => {
             ? 'bg-accent/10 text-accent'
             : 'text-surface-fg-muted hover:bg-surface-overlay hover:text-surface-fg'
         "
+        @click="emit('navigate')"
       >
         <component
           :is="item.icon"

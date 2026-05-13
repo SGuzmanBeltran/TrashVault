@@ -127,7 +127,7 @@ folders {
 - [x] Carpetas (crear, navegar, eliminar)
 - [x] Descargar archivos
 - [x] Manejo de errores con UI copada
-- [ ] Responsive mobile
+- [x] Responsive mobile
 
 ## Commands
 

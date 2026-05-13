@@ -68,7 +68,7 @@ async function handleChangePassword() {
       </div>
       <div class="p-6">
         <div class="mb-3 text-sm font-medium text-surface-fg">Accent Color</div>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <button
             v-for="a in accents"
             :key="a.name"

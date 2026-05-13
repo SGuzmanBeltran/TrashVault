@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Bell, ChevronDown, LogOut, User } from 'lucide-vue-next'
+import { Search, Bell, ChevronDown, LogOut, User, Menu } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import AccentPicker from '@/components/AccentPicker.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const showUserMenu = ref(false)
+
+const emit = defineEmits<{
+  toggleSidebar: []
+}>()
 
 async function handleSignOut() {
   await authStore.logout()
@@ -17,8 +21,15 @@ async function handleSignOut() {
 </script>
 
 <template>
-  <header class="flex h-14 items-center justify-between border-b border-surface-border bg-surface-raised px-6">
-    <div class="relative w-80">
+  <header class="flex h-14 items-center justify-between gap-3 border-b border-surface-border bg-surface-raised px-4 lg:px-6">
+    <button
+      class="rounded-lg p-2 text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg lg:hidden"
+      @click="emit('toggleSidebar')"
+    >
+      <Menu class="h-5 w-5" />
+    </button>
+
+    <div class="relative hidden w-80 sm:block">
       <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-fg-subtle" />
       <input
         type="text"
@@ -27,7 +38,7 @@ async function handleSignOut() {
       />
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 lg:gap-3">
       <AccentPicker />
 
       <button class="relative rounded-lg p-2 text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg">
@@ -43,7 +54,7 @@ async function handleSignOut() {
           <div class="flex h-7 w-7 items-center justify-center rounded-full bg-accent/15 text-xs font-medium text-accent">
             {{ authStore.user?.name?.charAt(0) ?? 'U' }}
           </div>
-          <span class="text-sm text-surface-fg">{{ authStore.user?.name ?? 'User' }}</span>
+          <span class="hidden text-sm text-surface-fg sm:inline">{{ authStore.user?.name ?? 'User' }}</span>
           <ChevronDown class="h-3.5 w-3.5 text-surface-fg-subtle" />
         </button>
 

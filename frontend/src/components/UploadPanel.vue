@@ -26,10 +26,10 @@ watch(
     leave-from-class="translate-y-0 opacity-100"
     leave-to-class="translate-y-4 opacity-0"
   >
-    <div
-      v-if="queue.hasUploads.value"
-      class="fixed bottom-20 right-6 z-40 w-80"
-    >
+      <div
+        v-if="queue.hasUploads.value"
+        class="fixed bottom-20 right-4 z-40 w-72 lg:right-6 lg:w-80"
+      >
       <Transition
         enter-active-class="transition-all duration-300 ease-out"
         enter-from-class="max-h-0 opacity-0 -translate-y-2"

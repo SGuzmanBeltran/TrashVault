@@ -257,7 +257,7 @@ async function onDrop(event: DragEvent) {
       </div>
     </Transition>
 
-    <div class="animate-in flex items-center justify-between">
+    <div class="animate-in flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-2xl font-semibold tracking-tight text-surface-fg">Files</h1>
         <p class="mt-1 text-sm text-surface-fg-muted">
@@ -270,21 +270,21 @@ async function onDrop(event: DragEvent) {
           @click="showNewFolder = !showNewFolder"
         >
           <FolderPlus class="h-4 w-4" />
-          New Folder
+          <span class="hidden sm:inline">New Folder</span>
         </button>
         <button
           class="flex items-center gap-2 rounded-lg border border-surface-border bg-surface-raised px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
           @click="triggerFolderSelect"
         >
           <FolderUp class="h-4 w-4" />
-          Folder
+          <span class="hidden sm:inline">Folder</span>
         </button>
         <button
           class="flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-fg transition-all hover:brightness-110 active:scale-[0.98]"
           @click="triggerFileSelect"
         >
           <Upload class="h-4 w-4" />
-          Upload
+          <span class="hidden sm:inline">Upload</span>
         </button>
         <input
           ref="fileInput"

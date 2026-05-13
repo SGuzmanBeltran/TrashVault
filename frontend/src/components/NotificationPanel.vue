@@ -6,7 +6,7 @@ const notificationStore = useNotificationStore()
 </script>
 
 <template>
-  <div class="fixed bottom-20 right-6 z-50 flex w-80 flex-col gap-2">
+  <div class="fixed bottom-20 right-4 z-50 flex w-72 flex-col gap-2 lg:right-6 lg:w-80">
     <TransitionGroup
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="translate-x-4 opacity-0"

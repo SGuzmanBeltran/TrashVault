@@ -74,7 +74,7 @@ function onKeydown(e: KeyboardEvent) {
     @click.self="emit('close')"
     @keydown="onKeydown"
   >
-    <div class="animate-in relative flex h-[90vh] w-[90vw] max-w-5xl flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface-raised">
+    <div class="animate-in relative flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden rounded-none border-0 bg-surface-raised sm:h-[90vh] sm:w-[90vw] sm:rounded-2xl sm:border sm:border-surface-border">
       <div class="flex items-center justify-between border-b border-surface-border px-5 py-3">
         <div class="min-w-0 flex-1">
           <h3 class="truncate text-sm font-medium text-surface-fg">{{ file.name }}</h3>
