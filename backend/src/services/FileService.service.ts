@@ -15,6 +15,7 @@ export interface CreateFileParams {
   folderId: string | null;
   buffer: ArrayBuffer;
   isEncrypted: boolean;
+  thumbnail: ArrayBuffer | null;
 }
 
 export class FileService {
@@ -32,7 +33,14 @@ export class FileService {
     }
 
     let thumbnailKey: string | null = null;
-    if (!params.isEncrypted) {
+    if (params.thumbnail) {
+      try {
+        thumbnailKey = this.thumbnailService.getThumbnailKey(params.key);
+        await this.storage.upload(params.thumbnail, thumbnailKey, 'image/jpeg');
+      } catch {
+        thumbnailKey = null;
+      }
+    } else if (!params.isEncrypted) {
       try {
         thumbnailKey = await this.thumbnailService.generateAndUpload(
           params.buffer,

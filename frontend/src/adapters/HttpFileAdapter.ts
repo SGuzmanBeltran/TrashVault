@@ -3,6 +3,7 @@ import type { FileItem } from '@/domain/types'
 import { apiFetch } from '@/lib/api-fetch'
 import { uploadWithProgress } from '@/lib/xhr-upload'
 import { encryptFile, decryptFile } from '@/lib/crypto'
+import { generateThumbnail, canGenerateThumbnail } from '@/lib/thumbnail'
 import { useVaultStore } from '@/stores/vault'
 
 interface BackendFileItem {
@@ -78,6 +79,11 @@ export class HttpFileAdapter implements FilePort {
     const vaultStore = useVaultStore()
     if (!vaultStore.dek) throw new Error('Vault is locked')
 
+    let thumbnail: Blob | null = null
+    if (canGenerateThumbnail(file.type)) {
+      try { thumbnail = await generateThumbnail(file) } catch { /* best-effort */ }
+    }
+
     const plaintext = await file.arrayBuffer()
     const ciphertext = await encryptFile(plaintext, vaultStore.dek)
     const encryptedBlob = new Blob([ciphertext], { type: file.type })
@@ -88,6 +94,9 @@ export class HttpFileAdapter implements FilePort {
     formData.append('isEncrypted', 'true')
     if (folderId !== null) {
       formData.append('folderId', folderId)
+    }
+    if (thumbnail) {
+      formData.append('thumbnail', new File([thumbnail], 'thumb.jpg', { type: 'image/jpeg' }))
     }
 
     const item = await apiFetch<BackendFileItem>('/files/upload', {
@@ -105,12 +114,18 @@ export class HttpFileAdapter implements FilePort {
     const vaultStore = useVaultStore()
     if (!vaultStore.dek) throw new Error('Vault is locked')
 
+    let thumbnail: Blob | null = null
+    if (canGenerateThumbnail(file.type)) {
+      try { thumbnail = await generateThumbnail(file) } catch { /* best-effort */ }
+    }
+
     const plaintext = await file.arrayBuffer()
     const ciphertext = await encryptFile(plaintext, vaultStore.dek)
     const encryptedBlob = new Blob([ciphertext], { type: file.type })
     const encryptedFile = new File([encryptedBlob], file.name, { type: file.type })
 
-    const item = await uploadWithProgress(encryptedFile, folderId, callbacks, true)
+    const thumbFile = thumbnail ? new File([thumbnail], 'thumb.jpg', { type: 'image/jpeg' }) : undefined
+    const item = await uploadWithProgress(encryptedFile, folderId, callbacks, true, thumbFile)
     return mapFile(item)
   }
 }

@@ -20,6 +20,7 @@ export function uploadWithProgress(
   folderId: string | null,
   { onProgress, signal }: UploadProgressCallbacks,
   isEncrypted = false,
+  thumbnail?: File,
 ): Promise<BackendFileItem> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
@@ -63,6 +64,9 @@ export function uploadWithProgress(
     }
     if (isEncrypted) {
       formData.append('isEncrypted', 'true')
+    }
+    if (thumbnail) {
+      formData.append('thumbnail', thumbnail)
     }
 
     xhr.send(formData)

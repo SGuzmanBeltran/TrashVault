@@ -27,6 +27,7 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
       folderId: body.folderId || null,
       buffer,
       isEncrypted: true,
+      thumbnail: body.thumbnail ? await body.thumbnail.arrayBuffer() : null,
     });
   }, {
     type: 'multipart',
@@ -34,6 +35,7 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
       file: t.File(),
       folderId: t.Optional(t.String()),
       isEncrypted: t.String(),
+      thumbnail: t.Optional(t.File()),
     }),
     auth: true,
   })
