@@ -75,29 +75,16 @@ export class HttpFileAdapter implements FilePort {
 
   async uploadFile(file: File, folderId: string | null): Promise<FileItem> {
     const vaultStore = useVaultStore()
+    if (!vaultStore.dek) throw new Error('Vault is locked')
 
-    if (vaultStore.dek) {
-      const plaintext = await file.arrayBuffer()
-      const ciphertext = await encryptFile(plaintext, vaultStore.dek)
-      const encryptedBlob = new Blob([ciphertext], { type: file.type })
-      const encryptedFile = new File([encryptedBlob], file.name, { type: file.type })
-
-      const formData = new FormData()
-      formData.append('file', encryptedFile)
-      formData.append('isEncrypted', 'true')
-      if (folderId !== null) {
-        formData.append('folderId', folderId)
-      }
-
-      const item = await apiFetch<BackendFileItem>('/files/upload', {
-        method: 'POST',
-        body: formData,
-      })
-      return mapFile(item)
-    }
+    const plaintext = await file.arrayBuffer()
+    const ciphertext = await encryptFile(plaintext, vaultStore.dek)
+    const encryptedBlob = new Blob([ciphertext], { type: file.type })
+    const encryptedFile = new File([encryptedBlob], file.name, { type: file.type })
 
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', encryptedFile)
+    formData.append('isEncrypted', 'true')
     if (folderId !== null) {
       formData.append('folderId', folderId)
     }
@@ -115,18 +102,14 @@ export class HttpFileAdapter implements FilePort {
     callbacks: UploadProgressCallbacks,
   ): Promise<FileItem> {
     const vaultStore = useVaultStore()
+    if (!vaultStore.dek) throw new Error('Vault is locked')
 
-    if (vaultStore.dek) {
-      const plaintext = await file.arrayBuffer()
-      const ciphertext = await encryptFile(plaintext, vaultStore.dek)
-      const encryptedBlob = new Blob([ciphertext], { type: file.type })
-      const encryptedFile = new File([encryptedBlob], file.name, { type: file.type })
+    const plaintext = await file.arrayBuffer()
+    const ciphertext = await encryptFile(plaintext, vaultStore.dek)
+    const encryptedBlob = new Blob([ciphertext], { type: file.type })
+    const encryptedFile = new File([encryptedBlob], file.name, { type: file.type })
 
-      const item = await uploadWithProgress(encryptedFile, folderId, callbacks, true)
-      return mapFile(item)
-    }
-
-    const item = await uploadWithProgress(file, folderId, callbacks)
+    const item = await uploadWithProgress(encryptedFile, folderId, callbacks, true)
     return mapFile(item)
   }
 }
