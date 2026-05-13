@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
@@ -21,11 +21,13 @@ import { useFileService } from '@/services'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
 import type { FileItem } from '@/domain/types'
 import type { Component } from 'vue'
+import { useVaultStore } from '@/stores/vault'
 import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
 const fileService = useFileService()
+const vaultStore = useVaultStore()
 
 const file = ref<FileItem | null>(null)
 const isLoading = ref(true)
@@ -37,8 +39,37 @@ const isDragging = ref(false)
 const isImageLike = computed(() => file.value?.mimeType.startsWith('image/') ?? false)
 const isVideoLike = computed(() => file.value?.mimeType.startsWith('video/') ?? false)
 const showThumbnail = computed(
-  () => (isImageLike.value || isVideoLike.value) && !thumbnailError.value,
+  () => !!thumbnailUrl.value && !thumbnailError.value,
 )
+
+async function loadThumbnail() {
+  if (!file.value?.thumbnailKey || !vaultStore.isUnlocked) return
+  try {
+    thumbnailUrl.value = await fileService.getThumbnailUrl(file.value.id)
+  } catch {
+    thumbnailError.value = true
+  }
+}
+
+watch(
+  () => vaultStore.isUnlocked,
+  (unlocked) => {
+    if (unlocked && file.value?.thumbnailKey) {
+      loadThumbnail()
+    }
+  },
+)
+
+onMounted(async () => {
+  try {
+    file.value = await fileService.getFile(route.params.id as string)
+    if (file.value?.thumbnailKey && vaultStore.isUnlocked) {
+      await loadThumbnail()
+    }
+  } finally {
+    isLoading.value = false
+  }
+})
 
 const iconMap: Record<string, Component> = {
   'file-text': FileText,
@@ -61,21 +92,6 @@ const iconColorMap: Record<string, string> = {
   database: 'text-cyan-400 bg-cyan-400/10',
   file: 'text-surface-fg-muted bg-surface-overlay',
 }
-
-onMounted(async () => {
-  try {
-    file.value = await fileService.getFile(route.params.id as string)
-    if (file.value?.thumbnailKey) {
-      try {
-        thumbnailUrl.value = await fileService.getThumbnailUrl(file.value.id)
-      } catch {
-        thumbnailError.value = true
-      }
-    }
-  } finally {
-    isLoading.value = false
-  }
-})
 
 const iconType = computed(() => (file.value ? getFileIcon(file.value.mimeType) : 'file'))
 const iconClasses = computed(() => iconColorMap[iconType.value] ?? 'text-surface-fg-muted bg-surface-overlay')

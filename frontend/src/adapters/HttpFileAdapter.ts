@@ -72,7 +72,8 @@ export class HttpFileAdapter implements FilePort {
       const plaintext = await decryptFile(ciphertext, vaultStore.dek)
       const blob = new Blob([plaintext], { type: 'image/jpeg' })
       return URL.createObjectURL(blob)
-    } catch {
+    } catch (error) {
+      console.warn('Failed to decrypt thumbnail:', error)
       return null
     }
   }

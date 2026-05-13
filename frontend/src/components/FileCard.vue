@@ -18,6 +18,7 @@ import { ref, computed, watch } from 'vue'
 import type { FileItem } from '@/domain/types'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
 import { useFileService } from '@/services'
+import { useVaultStore } from '@/stores/vault'
 import { toast } from 'vue-sonner'
 
 const props = defineProps<{
@@ -32,6 +33,7 @@ const emit = defineEmits<{
 }>()
 
 const fileService = useFileService()
+const vaultStore = useVaultStore()
 const showMenu = ref(false)
 const thumbnailUrl = ref<string | null>(null)
 const thumbnailError = ref(false)
@@ -40,18 +42,23 @@ const isDragging = ref(false)
 const isImageLike = computed(() => props.file.mimeType.startsWith('image/'))
 const isVideoLike = computed(() => props.file.mimeType.startsWith('video/'))
 const showThumbnail = computed(
-  () => (isImageLike.value || isVideoLike.value) && !thumbnailError.value,
+  () => !!thumbnailUrl.value && !thumbnailError.value,
 )
 
+async function loadThumbnail() {
+  if (!props.file.thumbnailKey || !vaultStore.isUnlocked) return
+  try {
+    thumbnailUrl.value = await fileService.getThumbnailUrl(props.file.id)
+  } catch {
+    thumbnailError.value = true
+  }
+}
+
 watch(
-  () => props.file.thumbnailKey,
-  async (key) => {
-    if (key) {
-      try {
-        thumbnailUrl.value = await fileService.getThumbnailUrl(props.file.id)
-      } catch {
-        thumbnailError.value = true
-      }
+  () => [props.file.thumbnailKey, vaultStore.isUnlocked],
+  ([key, unlocked]) => {
+    if (key && unlocked) {
+      loadThumbnail()
     }
   },
   { immediate: true },
