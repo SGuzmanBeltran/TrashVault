@@ -103,21 +103,22 @@ folders {
 
 **Frontend — Auth Integration**
 
-- [ ] Wire vault.unlock() into login flow
-- [ ] Wire vault.initOnRegistration() into registration flow
-- [ ] Wire vault.lock() into logout flow
-- [ ] Wire vault.tryAutoUnlock() into checkSession (app mount)
+- [x] Wire vault.unlock() into login flow
+- [x] Wire vault.initOnRegistration() into registration flow
+- [x] Wire vault.lock() into logout flow
+- [x] Wire vault.tryAutoUnlock() into checkSession (app mount)
 
 **Frontend — File Operations**
 
-- [ ] Encrypt files before upload (HttpFileAdapter)
-- [ ] Decrypt files on download (fetch + decrypt + Blob URL)
-- [ ] Skip thumbnail generation for encrypted files (backend)
+- [x] Encrypt files before upload (HttpFileAdapter)
+- [x] Decrypt files on download (fetch + decrypt + Blob URL)
+- [x] Skip thumbnail generation for encrypted files (backend)
 
 **Frontend — UI**
 
 - [ ] Unlock vault prompt (shown when sessionStorage has no cached password)
 - [ ] Password change flow (re-encrypt DEK with new KEK)
+- [ ] Registration page (wire authStore.register + vault init)
 
 ## Semana 2 — Polish
 
