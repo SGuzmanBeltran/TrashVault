@@ -30,6 +30,7 @@ export interface AuthPort {
   login(email: string, password: string): Promise<void>
   register(email: string, password: string, name: string): Promise<void>
   logout(): Promise<void>
+  changePassword(oldPassword: string, newPassword: string): Promise<void>
   getCurrentUser(): Promise<import('@/domain/types').User | null>
 }
 

@@ -67,5 +67,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, isLoading, isAuthenticated, login, logout, checkSession, register }
+  async function changePassword(oldPassword: string, newPassword: string) {
+    isLoading.value = true
+    try {
+      await authService.changePassword(oldPassword, newPassword)
+      const vaultStore = useVaultStore()
+      await vaultStore.reEncryptDek(oldPassword, newPassword)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  return { user, isLoading, isAuthenticated, login, logout, checkSession, register, changePassword }
 })

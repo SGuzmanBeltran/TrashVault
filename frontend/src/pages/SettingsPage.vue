@@ -1,17 +1,52 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
-import { Palette, Shield, Bell, Lock, HardDrive } from 'lucide-vue-next'
+import { Palette, Shield, Bell, Lock, HardDrive, Eye, EyeOff } from 'lucide-vue-next'
 import type { AccentColor } from '@/domain/types'
+import { toast } from 'vue-sonner'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
+
+const showPasswordForm = ref(false)
+const oldPassword = ref('')
+const newPassword = ref('')
+const confirmNewPassword = ref('')
+const showOldPassword = ref(false)
+const showNewPassword = ref(false)
+const passwordError = ref('')
 
 const accents: { name: AccentColor; label: string; hex: string; description: string }[] = [
   { name: 'cyan', label: 'Cyan', hex: '#22d3ee', description: 'Clean and modern' },
   { name: 'violet', label: 'Violet', hex: '#a78bfa', description: 'Creative and bold' },
   { name: 'orange', label: 'Orange', hex: '#fb923c', description: 'Warm and energetic' },
 ]
+
+async function handleChangePassword() {
+  passwordError.value = ''
+
+  if (newPassword.value !== confirmNewPassword.value) {
+    passwordError.value = 'New passwords do not match.'
+    return
+  }
+
+  if (newPassword.value.length < 8) {
+    passwordError.value = 'Password must be at least 8 characters.'
+    return
+  }
+
+  try {
+    await authStore.changePassword(oldPassword.value, newPassword.value)
+    toast.success('Password updated')
+    showPasswordForm.value = false
+    oldPassword.value = ''
+    newPassword.value = ''
+    confirmNewPassword.value = ''
+  } catch {
+    passwordError.value = 'Failed to change password. Check your current password.'
+  }
+}
 </script>
 
 <template>
@@ -92,14 +127,71 @@ const accents: { name: AccentColor; label: string; hex: string; description: str
         </h2>
       </div>
       <div class="divide-y divide-surface-border">
-        <div class="flex items-center justify-between px-6 py-4">
-          <div>
-            <div class="text-sm font-medium text-surface-fg">Password</div>
-            <div class="text-sm text-surface-fg-muted">Last changed 30 days ago</div>
+        <div class="px-6 py-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-medium text-surface-fg">Password</div>
+              <div class="text-sm text-surface-fg-muted">Update your password and re-encrypt your vault</div>
+            </div>
+            <button
+              class="rounded-lg px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/10"
+              @click="showPasswordForm = !showPasswordForm"
+            >
+              {{ showPasswordForm ? 'Cancel' : 'Update' }}
+            </button>
           </div>
-          <button class="rounded-lg px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/10">
-            Update
-          </button>
+
+          <form v-if="showPasswordForm" class="mt-4 space-y-3" @submit.prevent="handleChangePassword">
+            <div class="relative">
+              <input
+                v-model="oldPassword"
+                :type="showOldPassword ? 'text' : 'password'"
+                placeholder="Current password"
+                required
+                class="w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 pr-10 text-sm text-surface-fg placeholder-surface-fg-subtle outline-none transition-colors focus:border-accent/40 focus:ring-1 focus:ring-accent/20"
+              />
+              <button
+                type="button"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-surface-fg-subtle transition-colors hover:text-surface-fg"
+                @click="showOldPassword = !showOldPassword"
+              >
+                <EyeOff v-if="showOldPassword" class="h-4 w-4" />
+                <Eye v-else class="h-4 w-4" />
+              </button>
+            </div>
+            <div class="relative">
+              <input
+                v-model="newPassword"
+                :type="showNewPassword ? 'text' : 'password'"
+                placeholder="New password (min 8 chars)"
+                required
+                class="w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 pr-10 text-sm text-surface-fg placeholder-surface-fg-subtle outline-none transition-colors focus:border-accent/40 focus:ring-1 focus:ring-accent/20"
+              />
+              <button
+                type="button"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-surface-fg-subtle transition-colors hover:text-surface-fg"
+                @click="showNewPassword = !showNewPassword"
+              >
+                <EyeOff v-if="showNewPassword" class="h-4 w-4" />
+                <Eye v-else class="h-4 w-4" />
+              </button>
+            </div>
+            <input
+              v-model="confirmNewPassword"
+              :type="showNewPassword ? 'text' : 'password'"
+              placeholder="Confirm new password"
+              required
+              class="w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 text-sm text-surface-fg placeholder-surface-fg-subtle outline-none transition-colors focus:border-accent/40 focus:ring-1 focus:ring-accent/20"
+            />
+            <p v-if="passwordError" class="text-sm text-danger">{{ passwordError }}</p>
+            <button
+              type="submit"
+              class="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg transition-all hover:brightness-110 active:scale-[0.98]"
+              :disabled="authStore.isLoading"
+            >
+              Save new password
+            </button>
+          </form>
         </div>
         <div class="flex items-center justify-between px-6 py-4">
           <div>

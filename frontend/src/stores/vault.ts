@@ -77,5 +77,35 @@ export const useVaultStore = defineStore('vault', () => {
     sessionStorage.removeItem(SESSION_STORAGE_KEY)
   }
 
-  return { dek, isUnlocked, isLoading, unlock, initOnRegistration, tryAutoUnlock, lock }
+  async function reEncryptDek(oldPassword: string, newPassword: string) {
+    isLoading.value = true
+    try {
+      const keyData = await encryptionService.getKey()
+      const oldSalt = base64ToBytes(keyData.dekSalt)
+      const iv = base64ToBytes(keyData.dekIv)
+      const encryptedDekBytes = base64ToBytes(keyData.encryptedDek)
+
+      const oldKek = await deriveKek(oldPassword, oldSalt)
+      const currentDek = await decryptDek(encryptedDekBytes, iv, oldKek)
+
+      const newSalt = generateSalt()
+      const newKek = await deriveKek(newPassword, newSalt)
+      const { encryptedDek: newEncryptedDek, iv: newIv } = await encryptDek(currentDek, newKek)
+
+      await encryptionService.updateKey({
+        encryptedDek: bytesToBase64(newEncryptedDek),
+        dekIv: bytesToBase64(newIv),
+        dekSalt: bytesToBase64(newSalt),
+        kdfAlgorithm: 'argon2id',
+        kdfParams: ARGON2_PARAMS_JSON,
+      })
+
+      dek.value = currentDek
+      sessionStorage.setItem(SESSION_STORAGE_KEY, newPassword)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  return { dek, isUnlocked, isLoading, unlock, initOnRegistration, tryAutoUnlock, lock, reEncryptDek }
 })

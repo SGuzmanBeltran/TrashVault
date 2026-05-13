@@ -116,9 +116,9 @@ folders {
 
 **Frontend — UI**
 
-- [ ] Unlock vault prompt (shown when sessionStorage has no cached password)
-- [ ] Password change flow (re-encrypt DEK with new KEK)
-- [ ] Registration page (wire authStore.register + vault init)
+- [x] Unlock vault prompt (shown when sessionStorage has no cached password)
+- [x] Password change flow (re-encrypt DEK with new KEK)
+- [x] Registration page (wire authStore.register + vault init)
 
 ## Semana 2 — Polish
 

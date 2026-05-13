@@ -26,6 +26,18 @@ export class HttpAuthAdapter implements AuthPort {
     }
   }
 
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    const { error } = await authClient.changePassword({
+      currentPassword: oldPassword,
+      newPassword,
+      revokeOtherSessions: false,
+    })
+
+    if (error) {
+      throw new Error(error.message ?? 'Password change failed')
+    }
+  }
+
   async logout(): Promise<void> {
     await authClient.signOut()
   }

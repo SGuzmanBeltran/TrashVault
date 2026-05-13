@@ -7,18 +7,31 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const authStore = useAuthStore()
 
-const email = ref('demo@trashvault.dev')
-const password = ref('password123')
+const name = ref('')
+const email = ref('')
+const password = ref('')
+const confirmPassword = ref('')
 const showPassword = ref(false)
 const error = ref('')
 
-async function handleLogin() {
+async function handleRegister() {
   error.value = ''
+
+  if (password.value !== confirmPassword.value) {
+    error.value = 'Passwords do not match.'
+    return
+  }
+
+  if (password.value.length < 8) {
+    error.value = 'Password must be at least 8 characters.'
+    return
+  }
+
   try {
-    await authStore.login(email.value, password.value)
+    await authStore.register(email.value, password.value, name.value)
     router.push('/dashboard')
   } catch {
-    error.value = 'Invalid credentials. Please try again.'
+    error.value = 'Registration failed. Email may already be in use.'
   }
 }
 </script>
@@ -36,18 +49,32 @@ async function handleLogin() {
           <Shield class="h-6 w-6 text-accent" />
         </div>
         <h1 class="text-2xl font-semibold tracking-tight text-surface-fg">
-          Welcome back
+          Create account
         </h1>
         <p class="mt-1.5 text-sm text-surface-fg-muted">
-          Sign in to your Trashvault
+          Set up your Trashvault
         </p>
       </div>
 
       <form
         class="rounded-2xl border border-surface-border bg-surface-raised p-6"
-        @submit.prevent="handleLogin"
+        @submit.prevent="handleRegister"
       >
         <div class="space-y-4">
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-surface-fg" for="name">
+              Name
+            </label>
+            <input
+              id="name"
+              v-model="name"
+              type="text"
+              placeholder="Your name"
+              required
+              class="w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 text-sm text-surface-fg placeholder-surface-fg-subtle outline-none transition-colors focus:border-accent/40 focus:ring-1 focus:ring-accent/20"
+            />
+          </div>
+
           <div>
             <label class="mb-1.5 block text-sm font-medium text-surface-fg" for="email">
               Email
@@ -57,6 +84,7 @@ async function handleLogin() {
               v-model="email"
               type="email"
               placeholder="you@example.com"
+              required
               class="w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 text-sm text-surface-fg placeholder-surface-fg-subtle outline-none transition-colors focus:border-accent/40 focus:ring-1 focus:ring-accent/20"
             />
           </div>
@@ -70,7 +98,8 @@ async function handleLogin() {
                 id="password"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
-                placeholder="Enter your password"
+                placeholder="At least 8 characters"
+                required
                 class="w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 pr-10 text-sm text-surface-fg placeholder-surface-fg-subtle outline-none transition-colors focus:border-accent/40 focus:ring-1 focus:ring-accent/20"
               />
               <button
@@ -82,6 +111,20 @@ async function handleLogin() {
                 <Eye v-else class="h-4 w-4" />
               </button>
             </div>
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-surface-fg" for="confirmPassword">
+              Confirm password
+            </label>
+            <input
+              id="confirmPassword"
+              v-model="confirmPassword"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="Repeat your password"
+              required
+              class="w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 text-sm text-surface-fg placeholder-surface-fg-subtle outline-none transition-colors focus:border-accent/40 focus:ring-1 focus:ring-accent/20"
+            />
           </div>
         </div>
 
@@ -98,18 +141,14 @@ async function handleLogin() {
             <div class="h-4 w-4 animate-spin rounded-full border-2 border-accent-fg/30 border-t-accent-fg" />
           </template>
           <template v-else>
-            Sign in
+            Create account
             <ArrowRight class="h-4 w-4" />
           </template>
         </button>
 
         <p class="mt-4 text-center text-xs text-surface-fg-subtle">
-          Demo credentials are pre-filled
-        </p>
-
-        <p class="mt-2 text-center text-xs text-surface-fg-subtle">
-          Don't have an account?
-          <router-link to="/register" class="text-accent hover:underline">Create one</router-link>
+          Already have an account?
+          <router-link to="/login" class="text-accent hover:underline">Sign in</router-link>
         </p>
       </form>
     </div>
