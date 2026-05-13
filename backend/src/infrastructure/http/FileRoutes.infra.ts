@@ -5,7 +5,12 @@ import { authMacro } from './auth.plugin';
 
 export const fileRoutes = new Elysia({ prefix: '/files' })
   .use(authMacro)
-  .post('/upload', async ({ user, body }) => {
+  .post('/upload', async ({ user, body, set }) => {
+    if (body.isEncrypted !== 'true') {
+      set.status = 400;
+      return { error: 'All files must be encrypted' };
+    }
+
     const fileService = createFileService();
     const uploadedFile = body.file;
     const buffer = await uploadedFile.arrayBuffer();
@@ -21,14 +26,14 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
       key,
       folderId: body.folderId || null,
       buffer,
-      isEncrypted: body.isEncrypted === 'true',
+      isEncrypted: true,
     });
   }, {
     type: 'multipart',
     body: t.Object({
       file: t.File(),
       folderId: t.Optional(t.String()),
-      isEncrypted: t.Optional(t.String()),
+      isEncrypted: t.String(),
     }),
     auth: true,
   })
