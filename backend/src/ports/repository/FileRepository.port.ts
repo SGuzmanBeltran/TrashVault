@@ -8,6 +8,7 @@ export interface NewFile {
   key: string;
   folderId: string | null;
   thumbnailKey: string | null;
+  isEncrypted: boolean;
   createdAt: Date;
   trashedAt: Date | null;
 }

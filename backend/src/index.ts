@@ -1,8 +1,8 @@
 import 'dotenv/config';
 
 import { authPlugin } from './infrastructure/http/auth.plugin';
-import { fileRoutes, folderRoutes, statsRoutes, trashRoutes } from './infrastructure/http';
-import { registerFileRepository, registerFolderRepository, registerStorage } from './infrastructure/di/container';
+import { fileRoutes, folderRoutes, statsRoutes, trashRoutes, encryptionKeyRoutes } from './infrastructure/http';
+import { registerFileRepository, registerFolderRepository, registerEncryptionKeyRepository, registerStorage } from './infrastructure/di/container';
 import { ServiceError } from './errors';
 
 import { Elysia } from 'elysia';
@@ -18,13 +18,15 @@ registerStorage({
 
 registerFileRepository();
 registerFolderRepository();
+registerEncryptionKeyRepository();
 
 const apiRoutes = new Elysia({ prefix: '/api' })
   .use(authPlugin)
   .use(fileRoutes)
   .use(folderRoutes)
   .use(statsRoutes)
-  .use(trashRoutes);
+  .use(trashRoutes)
+  .use(encryptionKeyRoutes);
 
 const app = new Elysia()
   .use(cors({

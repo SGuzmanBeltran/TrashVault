@@ -21,12 +21,14 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
       key,
       folderId: body.folderId || null,
       buffer,
+      isEncrypted: body.isEncrypted === 'true',
     });
   }, {
     type: 'multipart',
     body: t.Object({
       file: t.File(),
       folderId: t.Optional(t.String()),
+      isEncrypted: t.Optional(t.String()),
     }),
     auth: true,
   })

@@ -2,6 +2,9 @@ import { StorageConfig, StoragePort } from '../../ports/storage/Storage.port';
 
 import { DrizzleFileRepositoryAdapter } from '../../adapters/repository/DrizzleFileRepository.adapter';
 import { DrizzleFolderRepositoryAdapter } from '../../adapters/repository/DrizzleFolderRepository.adapter';
+import { DrizzleEncryptionKeyRepositoryAdapter } from '../../adapters/repository/DrizzleEncryptionKeyRepository.adapter';
+import { EncryptionKeyRepositoryPort } from '../../ports/repository/EncryptionKeyRepository.port';
+import { EncryptionKeyService } from '../../services/EncryptionKeyService.service';
 import { FileRepositoryPort } from '../../ports/repository/FileRepository.port';
 import { FileService } from '../../services/FileService.service';
 import { FolderRepositoryPort } from '../../ports/repository/FolderRepository.port';
@@ -14,6 +17,7 @@ import { TrashService } from '../../services/TrashService.service';
 let storageInstance: StoragePort | null = null;
 let fileRepositoryInstance: FileRepositoryPort | null = null;
 let folderRepositoryInstance: FolderRepositoryPort | null = null;
+let encryptionKeyRepositoryInstance: EncryptionKeyRepositoryPort | null = null;
 
 export function registerStorage(config: StorageConfig): void {
     storageInstance = new S3StorageAdapter(config);
@@ -48,6 +52,17 @@ export function getFolderRepository(): FolderRepositoryPort {
   return folderRepositoryInstance;
 }
 
+export function registerEncryptionKeyRepository(): void {
+  encryptionKeyRepositoryInstance = new DrizzleEncryptionKeyRepositoryAdapter();
+}
+
+export function getEncryptionKeyRepository(): EncryptionKeyRepositoryPort {
+  if (!encryptionKeyRepositoryInstance) {
+    throw new Error('EncryptionKeyRepository not registered. Call registerEncryptionKeyRepository first.');
+  }
+  return encryptionKeyRepositoryInstance;
+}
+
 export function createThumbnailService(): ThumbnailService {
   return new ThumbnailService(getStorage());
 }
@@ -66,4 +81,8 @@ export function createStatsService(): StatsService {
 
 export function createTrashService(): TrashService {
   return new TrashService(getFileRepository(), getFolderRepository(), getStorage());
+}
+
+export function createEncryptionKeyService(): EncryptionKeyService {
+  return new EncryptionKeyService(getEncryptionKeyRepository());
 }
