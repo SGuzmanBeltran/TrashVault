@@ -44,3 +44,32 @@ export interface TrashPort {
   permanentDeleteFolder(id: string): Promise<void>
   emptyTrash(): Promise<void>
 }
+
+export interface EncryptionKeyData {
+  userId: string
+  encryptedDek: string
+  dekIv: string
+  dekSalt: string
+  kdfAlgorithm: string
+  kdfParams: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface EncryptionPort {
+  getKey(): Promise<EncryptionKeyData>
+  createKey(params: {
+    encryptedDek: string
+    dekIv: string
+    dekSalt: string
+    kdfAlgorithm: string
+    kdfParams: string
+  }): Promise<EncryptionKeyData>
+  updateKey(params: {
+    encryptedDek: string
+    dekIv: string
+    dekSalt: string
+    kdfAlgorithm: string
+    kdfParams: string
+  }): Promise<EncryptionKeyData>
+}

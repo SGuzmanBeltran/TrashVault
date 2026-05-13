@@ -1,4 +1,4 @@
-import type { FilePort, FolderPort, AuthPort, StatsPort, TrashPort } from '@/ports'
+import type { FilePort, FolderPort, AuthPort, StatsPort, TrashPort, EncryptionPort } from '@/ports'
 import { container } from '@/container'
 
 export function useFileService(): FilePort {
@@ -19,4 +19,8 @@ export function useStatsService(): StatsPort {
 
 export function useTrashService(): TrashPort {
   return container.get<TrashPort>('TrashPort')
+}
+
+export function useEncryptionService(): EncryptionPort {
+  return container.get<EncryptionPort>('EncryptionPort')
 }

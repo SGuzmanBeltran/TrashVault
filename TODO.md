@@ -97,9 +97,9 @@ folders {
 
 **Frontend — Vault Store**
 
-- [ ] `stores/vault.ts` — DEK in memory, unlock/lock/initOnRegistration/tryAutoUnlock
-- [ ] `HttpEncryptionAdapter.ts` — API calls for encryption key CRUD
-- [ ] Add `EncryptionPort` to ports + container
+- [x] `stores/vault.ts` — DEK in memory, unlock/lock/initOnRegistration/tryAutoUnlock
+- [x] `HttpEncryptionAdapter.ts` — API calls for encryption key CRUD
+- [x] Add `EncryptionPort` to ports + container
 
 **Frontend — Auth Integration**
 
