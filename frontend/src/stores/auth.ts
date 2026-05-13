@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '@/domain/types'
 import { useAuthService } from '@/services'
+import { useVaultStore } from '@/stores/vault'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -15,6 +16,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await authService.login(email, password)
       user.value = await authService.getCurrentUser()
+      const vaultStore = useVaultStore()
+      await vaultStore.unlock(password)
     } finally {
       isLoading.value = false
     }
@@ -23,6 +26,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     isLoading.value = true
     try {
+      const vaultStore = useVaultStore()
+      vaultStore.lock()
       await authService.logout()
       user.value = null
     } finally {
@@ -36,8 +41,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     isLoading.value = true
-    checkSessionPromise = authService.getCurrentUser().then((u) => {
+    checkSessionPromise = authService.getCurrentUser().then(async (u) => {
       user.value = u
+      if (u) {
+        const vaultStore = useVaultStore()
+        await vaultStore.tryAutoUnlock()
+      }
     }).finally(() => {
       isLoading.value = false
       checkSessionPromise = null
@@ -46,5 +55,17 @@ export const useAuthStore = defineStore('auth', () => {
     return checkSessionPromise
   }
 
-  return { user, isLoading, isAuthenticated, login, logout, checkSession }
+  async function register(email: string, password: string, name: string) {
+    isLoading.value = true
+    try {
+      await authService.register(email, password, name)
+      user.value = await authService.getCurrentUser()
+      const vaultStore = useVaultStore()
+      await vaultStore.initOnRegistration(password)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  return { user, isLoading, isAuthenticated, login, logout, checkSession, register }
 })

@@ -28,6 +28,7 @@ export interface FolderPort {
 
 export interface AuthPort {
   login(email: string, password: string): Promise<void>
+  register(email: string, password: string, name: string): Promise<void>
   logout(): Promise<void>
   getCurrentUser(): Promise<import('@/domain/types').User | null>
 }

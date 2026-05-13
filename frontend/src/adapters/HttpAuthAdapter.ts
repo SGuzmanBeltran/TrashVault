@@ -14,6 +14,18 @@ export class HttpAuthAdapter implements AuthPort {
     }
   }
 
+  async register(email: string, password: string, name: string): Promise<void> {
+    const { error } = await authClient.signUp.email({
+      email,
+      password,
+      name,
+    })
+
+    if (error) {
+      throw new Error(error.message ?? 'Registration failed')
+    }
+  }
+
   async logout(): Promise<void> {
     await authClient.signOut()
   }
