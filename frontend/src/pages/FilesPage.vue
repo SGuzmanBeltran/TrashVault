@@ -33,6 +33,7 @@ const folderInput = ref<HTMLInputElement | null>(null)
 const dragCounter = ref(0)
 const isDragging = computed(() => dragCounter.value > 0)
 const previewFile = ref<FileItem | null>(null)
+const openMenuFileId = ref<string | null>(null)
 
 onMounted(() => {
   fileStore.loadFolder(null)
@@ -415,7 +416,7 @@ async function onDrop(event: DragEvent) {
             v-for="(file, i) in fileStore.allItems.files"
             :key="file.id"
             class="animate-in"
-            :class="`animate-stagger-${Math.min(i + 1, 6)}`"
+            :class="[`animate-stagger-${Math.min(i + 1, 6)}`, openMenuFileId === file.id ? 'relative z-20' : '']"
           >
             <FileCard
               :file="file"
@@ -423,6 +424,7 @@ async function onDrop(event: DragEvent) {
               @select="fileStore.toggleFileSelection"
               @delete="fileStore.deleteFile"
               @preview="handlePreviewFile"
+              @menu-change="(open) => openMenuFileId = open ? file.id : null"
             />
           </div>
         </div>

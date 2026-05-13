@@ -14,7 +14,7 @@ import {
   Eye,
   Play,
 } from 'lucide-vue-next'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { FileItem } from '@/domain/types'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
 import { useFileService } from '@/services'
@@ -30,12 +30,31 @@ const emit = defineEmits<{
   select: [id: string]
   delete: [id: string]
   preview: [file: FileItem]
+  menuChange: [open: boolean]
 }>()
 
 const fileService = useFileService()
 const vaultStore = useVaultStore()
 const notify = useNotificationStore()
+const cardRef = ref<HTMLElement | null>(null)
+const menuBtnRef = ref<HTMLElement | null>(null)
 const showMenu = ref(false)
+
+watch(showMenu, (open) => emit('menuChange', open))
+
+function onClickDocument(e: MouseEvent) {
+  if (!cardRef.value) return
+  const target = e.target as Node
+
+  if (menuBtnRef.value?.contains(target)) {
+    showMenu.value = !showMenu.value
+  } else if (!cardRef.value.contains(target)) {
+    showMenu.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', onClickDocument))
+onUnmounted(() => document.removeEventListener('click', onClickDocument))
 const thumbnailUrl = ref<string | null>(null)
 const thumbnailError = ref(false)
 const downloadUrl = ref<string | null>(null)
@@ -139,10 +158,12 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
 
 <template>
   <div
+    ref="cardRef"
     class="group relative flex flex-col rounded-xl border border-surface-border bg-surface-raised p-4 transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/10"
     :class="[
       selected ? 'border-accent/40 ring-1 ring-accent/20' : '',
       isDragging ? 'opacity-50 ring-1 ring-accent/40' : '',
+      showMenu ? 'z-20' : '',
     ]" draggable="true"
     @click="emit('select', file.id)"
 @mousedown="onMouseDown" @dragstart="onDragStart"
@@ -164,8 +185,8 @@ class="relative flex h-11 w-11 items-center justify-center overflow-hidden round
 
       <div class="relative">
         <button
+          ref="menuBtnRef"
           class="rounded-md p-1 text-surface-fg-subtle opacity-0 transition-all group-hover:opacity-100 hover:bg-surface-overlay hover:text-surface-fg"
-          @click.stop="showMenu = !showMenu"
         >
           <MoreVertical class="h-4 w-4" />
         </button>
