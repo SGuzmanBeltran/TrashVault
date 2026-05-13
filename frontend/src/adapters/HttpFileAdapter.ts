@@ -50,17 +50,18 @@ export class HttpFileAdapter implements FilePort {
 
   async downloadFile(id: string): Promise<{ blobUrl: string; filename: string; mimeType: string }> {
     const meta = await apiFetch<BackendFileItem>(`/files/${id}`)
-    const { url } = await apiFetch<{ url: string }>(`/files/${id}/download`)
 
     const vaultStore = useVaultStore()
     if (meta.isEncrypted && vaultStore.dek) {
-      const resp = await fetch(url)
+      const resp = await fetch(`/api/files/${id}/bytes`, { credentials: 'include' })
+      if (!resp.ok) throw new Error('Failed to download file')
       const ciphertext = await resp.arrayBuffer()
       const plaintext = await decryptFile(ciphertext, vaultStore.dek)
       const blob = new Blob([plaintext], { type: meta.mimeType })
       return { blobUrl: URL.createObjectURL(blob), filename: meta.name, mimeType: meta.mimeType }
     }
 
+    const { url } = await apiFetch<{ url: string }>(`/files/${id}/download`)
     return { blobUrl: url, filename: meta.name, mimeType: meta.mimeType }
   }
 

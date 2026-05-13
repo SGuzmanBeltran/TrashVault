@@ -57,6 +57,18 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
   }, {
     auth: true,
   })
+  .get('/:id/bytes', async ({ user, params, set }) => {
+    const fileService = createFileService();
+    const result = await fileService.getFileBytes(params.id, user!.id);
+    if (!result) {
+      set.status = 404;
+      return { error: 'File not found' };
+    }
+    set.headers['content-type'] = result.mimeType;
+    return new Response(result.buffer);
+  }, {
+    auth: true,
+  })
   .get('/:id/thumbnail', async ({ user, params }) => {
     const fileService = createFileService();
     const url = await fileService.getThumbnailUrl(params.id, user!.id);

@@ -129,4 +129,16 @@ export class FileService {
       throw wrapRepositoryError(error);
     }
   }
+
+  async getFileBytes(id: string, userId: string): Promise<{ buffer: ArrayBuffer; mimeType: string } | null> {
+    try {
+      const file = await this.fileRepository.findById(id, userId);
+      if (!file) return null;
+      const buffer = await this.storage.download(file.key);
+      return { buffer, mimeType: file.mimeType };
+    } catch (error) {
+      if (error instanceof StorageError) throw error;
+      throw wrapRepositoryError(error);
+    }
+  }
 }

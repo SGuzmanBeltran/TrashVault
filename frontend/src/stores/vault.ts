@@ -62,6 +62,8 @@ export const useVaultStore = defineStore('vault', () => {
   }
 
   async function tryAutoUnlock() {
+    if (dek.value) return
+
     const cached = sessionStorage.getItem(SESSION_STORAGE_KEY)
     if (!cached) return
 
