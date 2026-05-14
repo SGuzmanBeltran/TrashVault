@@ -122,3 +122,57 @@ export function base64ToBytes(b64: string): Uint8Array {
   }
   return bytes;
 }
+
+const DEVICE_KEY_COOKIE = 'tv-device-key';
+const DEVICE_KEY_EXPIRY = 365;
+
+function setCookie(name: string, value: string, days: number) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Strict`;
+}
+
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]!) : null;
+}
+
+export async function getOrCreateDeviceKey(): Promise<CryptoKey> {
+  const existing = getCookie(DEVICE_KEY_COOKIE);
+  if (existing) {
+    const raw = base64ToBytes(existing);
+    return crypto.subtle.importKey('raw', raw.buffer as ArrayBuffer, { name: 'AES-GCM' }, false, [
+      'encrypt',
+      'decrypt',
+    ]);
+  }
+
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: AES_KEY_LENGTH }, true, [
+    'encrypt',
+    'decrypt',
+  ]);
+  const raw = new Uint8Array(await crypto.subtle.exportKey('raw', key));
+  setCookie(DEVICE_KEY_COOKIE, bytesToBase64(raw), DEVICE_KEY_EXPIRY);
+  return key;
+}
+
+export async function encryptForCache(plaintext: string, key: CryptoKey): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const encoded = new TextEncoder().encode(plaintext);
+  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded));
+  const result = new Uint8Array(iv.length + ciphertext.length);
+  result.set(iv, 0);
+  result.set(ciphertext, iv.length);
+  return bytesToBase64(result);
+}
+
+export async function decryptFromCache(encrypted: string, key: CryptoKey): Promise<string> {
+  const data = base64ToBytes(encrypted);
+  const iv = data.slice(0, IV_LENGTH);
+  const ciphertext = data.slice(IV_LENGTH);
+  const plaintext = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ciphertext as Uint8Array<ArrayBuffer>,
+  );
+  return new TextDecoder().decode(plaintext);
+}

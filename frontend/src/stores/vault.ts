@@ -9,6 +9,9 @@ import {
   decryptDek,
   bytesToBase64,
   base64ToBytes,
+  getOrCreateDeviceKey,
+  encryptForCache,
+  decryptFromCache,
 } from '@/lib/crypto'
 
 const SESSION_STORAGE_KEY = 'tv-vault-password'
@@ -32,7 +35,9 @@ export const useVaultStore = defineStore('vault', () => {
       const kek = await deriveKek(password, salt)
       dek.value = await decryptDek(encryptedDekBytes, iv, kek)
 
-      sessionStorage.setItem(SESSION_STORAGE_KEY, password)
+      const deviceKey = await getOrCreateDeviceKey()
+      const encrypted = await encryptForCache(password, deviceKey)
+      sessionStorage.setItem(SESSION_STORAGE_KEY, encrypted)
     } finally {
       isLoading.value = false
     }
@@ -55,7 +60,9 @@ export const useVaultStore = defineStore('vault', () => {
       })
 
       dek.value = newDek
-      sessionStorage.setItem(SESSION_STORAGE_KEY, password)
+      const deviceKey = await getOrCreateDeviceKey()
+      const encrypted = await encryptForCache(password, deviceKey)
+      sessionStorage.setItem(SESSION_STORAGE_KEY, encrypted)
     } finally {
       isLoading.value = false
     }
@@ -68,7 +75,9 @@ export const useVaultStore = defineStore('vault', () => {
     if (!cached) return
 
     try {
-      await unlock(cached)
+      const deviceKey = await getOrCreateDeviceKey()
+      const password = await decryptFromCache(cached, deviceKey)
+      await unlock(password)
     } catch {
       sessionStorage.removeItem(SESSION_STORAGE_KEY)
     }
@@ -103,7 +112,9 @@ export const useVaultStore = defineStore('vault', () => {
       })
 
       dek.value = currentDek
-      sessionStorage.setItem(SESSION_STORAGE_KEY, newPassword)
+      const deviceKey = await getOrCreateDeviceKey()
+      const encrypted = await encryptForCache(newPassword, deviceKey)
+      sessionStorage.setItem(SESSION_STORAGE_KEY, encrypted)
     } finally {
       isLoading.value = false
     }
