@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { X, Download, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { X, Download, Loader2 } from 'lucide-vue-next'
 import type { FileItem } from '@/domain/types'
 import { useFileService } from '@/services'
 import { useNotificationStore } from '@/stores/notification'
@@ -19,6 +19,7 @@ const fileService = useFileService()
 const notify = useNotificationStore()
 const blobUrl = ref<string | null>(null)
 const isLoading = ref(true)
+const isDownloading = ref(false)
 const error = ref('')
 
 const isImage = computed(() => {
@@ -57,10 +58,15 @@ onUnmounted(() => {
 
 function handleDownload() {
   if (!blobUrl.value) return
-  const a = document.createElement('a')
-  a.href = blobUrl.value
-  a.download = props.file.name
-  a.click()
+  isDownloading.value = true
+  try {
+    const a = document.createElement('a')
+    a.href = blobUrl.value
+    a.download = props.file.name
+    a.click()
+  } finally {
+    isDownloading.value = false
+  }
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -83,9 +89,11 @@ function onKeydown(e: KeyboardEvent) {
         <div class="flex items-center gap-2">
           <button
             class="rounded-lg p-2 text-surface-fg-subtle transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+            :disabled="isDownloading"
             @click="handleDownload"
           >
-            <Download class="h-4 w-4" />
+            <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
+            <Download v-else class="h-4 w-4" />
           </button>
           <button
             class="rounded-lg p-2 text-surface-fg-subtle transition-colors hover:bg-surface-overlay hover:text-surface-fg"

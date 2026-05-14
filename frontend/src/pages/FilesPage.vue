@@ -15,6 +15,7 @@ import {
 import { useFileStore } from '@/stores/files'
 import { useUploadQueue } from '@/composables/useUploadQueue'
 import { useFolderService } from '@/services'
+import { useNotificationStore } from '@/stores/notification'
 import FileCard from '@/components/FileCard.vue'
 import FolderCard from '@/components/FolderCard.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
@@ -24,6 +25,7 @@ import type { FileViewMode, FileItem } from '@/domain/types'
 const fileStore = useFileStore()
 const uploadQueue = useUploadQueue()
 const folderService = useFolderService()
+const notify = useNotificationStore()
 
 const viewMode = ref<FileViewMode>('grid')
 const showNewFolder = ref(false)
@@ -98,8 +100,14 @@ async function processFolderUpload(entries: { file: File; path: string }[]) {
     const parentPath = parts.slice(0, -1).join('/')
     const parentId = parentPath ? pathToId.get(parentPath) ?? null : fileStore.currentFolderId
 
-    const folder = await folderService.createFolder(name, parentId)
-    pathToId.set(path, folder.id)
+    try {
+      const folder = await folderService.createFolder(name, parentId)
+      pathToId.set(path, folder.id)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : `Failed to create folder "${name}"`
+      notify.error(message)
+      return
+    }
   }
 
   fileStore.loadFolder(fileStore.currentFolderId)

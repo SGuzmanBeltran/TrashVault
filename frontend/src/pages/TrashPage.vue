@@ -14,6 +14,7 @@ import {
   Database,
   File,
   AlertTriangle,
+  Loader2,
 } from 'lucide-vue-next'
 import { useTrashStore } from '@/stores/trash'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
@@ -60,10 +61,12 @@ async function handleEmptyTrash() {
       <button
         v-if="trashStore.files.length > 0 || trashStore.folders.length > 0"
         class="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm font-medium text-danger transition-all hover:bg-danger/20 active:scale-[0.98]"
+        :disabled="trashStore.isEmptying"
         @click="showEmptyConfirm = true"
       >
-        <Trash2 class="h-4 w-4" />
-        Empty Trash
+        <Loader2 v-if="trashStore.isEmptying" class="h-4 w-4 animate-spin" />
+        <Trash2 v-else class="h-4 w-4" />
+        {{ trashStore.isEmptying ? 'Emptying...' : 'Empty Trash' }}
       </button>
     </div>
 
@@ -88,9 +91,11 @@ async function handleEmptyTrash() {
           </button>
           <button
             class="rounded-lg bg-danger px-3 py-1.5 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
+            :disabled="trashStore.isEmptying"
             @click="handleEmptyTrash"
           >
-            Delete everything
+            <Loader2 v-if="trashStore.isEmptying" class="inline h-4 w-4 animate-spin" />
+            {{ trashStore.isEmptying ? 'Deleting...' : 'Delete everything' }}
           </button>
         </div>
       </div>
@@ -124,17 +129,21 @@ async function handleEmptyTrash() {
             <div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
               <button
                 class="rounded-lg p-1.5 text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-accent"
+                :disabled="trashStore.loadingIds.has(folder.id)"
                 title="Restore"
                 @click="trashStore.restoreFolder(folder.id)"
               >
-                <RotateCcw class="h-4 w-4" />
+                <Loader2 v-if="trashStore.loadingIds.has(folder.id)" class="h-4 w-4 animate-spin" />
+                <RotateCcw v-else class="h-4 w-4" />
               </button>
               <button
                 class="rounded-lg p-1.5 text-surface-fg-muted transition-colors hover:bg-danger-soft hover:text-danger"
+                :disabled="trashStore.loadingIds.has(folder.id)"
                 title="Delete permanently"
                 @click="trashStore.permanentDeleteFolder(folder.id)"
               >
-                <X class="h-4 w-4" />
+                <Loader2 v-if="trashStore.loadingIds.has(folder.id)" class="h-4 w-4 animate-spin" />
+                <X v-else class="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -170,17 +179,21 @@ async function handleEmptyTrash() {
             <div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
               <button
                 class="rounded-lg p-1.5 text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-accent"
+                :disabled="trashStore.loadingIds.has(file.id)"
                 title="Restore"
                 @click="trashStore.restoreFile(file.id)"
               >
-                <RotateCcw class="h-4 w-4" />
+                <Loader2 v-if="trashStore.loadingIds.has(file.id)" class="h-4 w-4 animate-spin" />
+                <RotateCcw v-else class="h-4 w-4" />
               </button>
               <button
                 class="rounded-lg p-1.5 text-surface-fg-muted transition-colors hover:bg-danger-soft hover:text-danger"
+                :disabled="trashStore.loadingIds.has(file.id)"
                 title="Delete permanently"
                 @click="trashStore.permanentDeleteFile(file.id)"
               >
-                <X class="h-4 w-4" />
+                <Loader2 v-if="trashStore.loadingIds.has(file.id)" class="h-4 w-4 animate-spin" />
+                <X v-else class="h-4 w-4" />
               </button>
             </div>
           </div>
