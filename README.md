@@ -182,9 +182,15 @@ See [TODO.md](./TODO.md) for the full backlog. Highlights:
 - [x] Authentication (Better Auth)
 - [x] Frontend login & file browser
 - [x] Drag & drop uploads
-- [ ] Client-side zero-trust encryption
-- [ ] Image previews
-- [ ] Mobile responsive UI
+- [x] Client-side zero-trust encryption
+- [x] Image/video/PDF previews
+- [x] Mobile responsive UI
+- [ ] Loading & feedback improvements (spinners, error handling, skeletons)
+- [ ] Sorting & search
+- [ ] List view & bulk operations (multi-select, move, delete)
+- [ ] Keyboard shortcuts
+- [ ] Folder download (zip)
+- [ ] Drag files to folders (move) & drag-to-upload to specific folder
 
 ## License
 

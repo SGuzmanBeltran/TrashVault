@@ -129,6 +129,35 @@ folders {
 - [x] Manejo de errores con UI copada
 - [x] Responsive mobile
 
+## Semana 3 — UX & Features
+
+### Slice 0: Loading & Feedback
+
+- [ ] Error handling — try/catch + notify on file delete, folder delete, folder create, trash ops
+- [ ] Download loading state — disable button + show spinner during fetch+decrypt
+- [ ] Trash item loading — disable restore/delete buttons during operation
+- [ ] App mount skeleton — show full-screen skeleton while checkSession resolves
+
+### Slice 1: Sorting & Search
+
+- [ ] 1a. Sorting — wire `sort` ref in store `allItems`, dropdown UI on Sort button (name/size/date/type, asc/desc)
+- [ ] 1b. Search — wire topbar input to `fileStore.searchQuery`, add mobile search icon
+
+### Slice 2: List View & Bulk Operations
+
+- [ ] 2a. List view — compact row template (icon, name, size, date), persist viewMode to localStorage
+- [ ] 2b. Bulk operations — action bar (delete, move, clear), `PATCH /files/:id` backend endpoint, Shift+click range select
+
+### Slice 3: Keyboard Shortcuts & Folder Download
+
+- [ ] 3a. Keyboard shortcuts — Del (delete), Enter (preview), Esc (clear/close), Ctrl+A (select all), Ctrl+U (upload)
+- [ ] 3b. Folder download — `GET /folders/:id/download` backend zip endpoint, frontend "Download" on FolderCard menu
+
+### Slice 4: Drag Features
+
+- [ ] 4a. Drag files to folders — dragstart on FileCard, dragover/drop on FolderCard, move via API, visual highlight
+- [ ] 4b. Drag-to-upload to folder — detect external drops on FolderCard, upload directly to that folder
+
 ## Commands
 
 ```bash

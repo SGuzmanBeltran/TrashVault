@@ -13,6 +13,7 @@ import {
   Trash2,
   Eye,
   Play,
+  Loader2,
 } from 'lucide-vue-next'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { FileItem } from '@/domain/types'
@@ -59,6 +60,7 @@ const thumbnailUrl = ref<string | null>(null)
 const thumbnailError = ref(false)
 const downloadUrl = ref<string | null>(null)
 const isDragging = ref(false)
+const isDownloading = ref(false)
 const isImageLike = computed(() => props.file.mimeType.startsWith('image/'))
 const isVideoLike = computed(() => props.file.mimeType.startsWith('video/'))
 const showThumbnail = computed(
@@ -85,6 +87,7 @@ watch(
 )
 
 async function downloadFile() {
+  isDownloading.value = true
   try {
     const result = await fileService.downloadFile(props.file.id)
     const a = document.createElement('a')
@@ -97,6 +100,8 @@ async function downloadFile() {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to download file'
     notify.error(message)
+  } finally {
+    isDownloading.value = false
   }
 }
 
@@ -213,10 +218,12 @@ class="relative flex h-11 w-11 items-center justify-center overflow-hidden round
               </button>
               <button
                 class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+                :disabled="isDownloading"
                 @click.stop="downloadFile(); showMenu = false"
               >
-                <Download class="h-4 w-4" />
-                Download
+                <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
+                <Download v-else class="h-4 w-4" />
+                {{ isDownloading ? 'Decrypting...' : 'Download' }}
               </button>
               <button
                 class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"

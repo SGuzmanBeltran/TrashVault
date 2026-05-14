@@ -16,6 +16,7 @@ import {
   Calendar,
   HardDrive,
   FileType,
+  Loader2,
 } from 'lucide-vue-next'
 import { useFileService } from '@/services'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
@@ -36,6 +37,7 @@ const thumbnailUrl = ref<string | null>(null)
 const thumbnailError = ref(false)
 const downloadUrl = ref<string | null>(null)
 const isDragging = ref(false)
+const isDownloading = ref(false)
 
 const isImageLike = computed(() => file.value?.mimeType.startsWith('image/') ?? false)
 const isVideoLike = computed(() => file.value?.mimeType.startsWith('video/') ?? false)
@@ -99,6 +101,7 @@ const iconClasses = computed(() => iconColorMap[iconType.value] ?? 'text-surface
 
 async function downloadFile() {
   if (!file.value) return
+  isDownloading.value = true
   try {
     const result = await fileService.downloadFile(file.value.id)
     const a = document.createElement('a')
@@ -111,6 +114,8 @@ async function downloadFile() {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to download file'
     notify.error(message)
+  } finally {
+    isDownloading.value = false
   }
 }
 
@@ -200,10 +205,12 @@ function onDragEnd() {
           <div class="mt-8 flex items-center gap-3">
             <button
               class="flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg transition-all hover:brightness-110 active:scale-[0.98]"
+              :disabled="isDownloading"
               @click="downloadFile"
             >
-              <Download class="h-4 w-4" />
-              Download
+              <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
+              <Download v-else class="h-4 w-4" />
+              {{ isDownloading ? 'Decrypting...' : 'Download' }}
             </button>
             <button class="flex items-center gap-2 rounded-lg border border-surface-border px-5 py-2.5 text-sm text-surface-fg-muted transition-colors hover:border-danger/40 hover:bg-danger-soft hover:text-danger">
               <Trash2 class="h-4 w-4" />

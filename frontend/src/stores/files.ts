@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { FileItem, Folder, Breadcrumb, SortConfig } from '@/domain/types'
 import { useFileService, useFolderService } from '@/services'
+import { useNotificationStore } from '@/stores/notification'
 
 export const useFileStore = defineStore('files', () => {
   const files = ref<FileItem[]>([])
@@ -16,6 +17,7 @@ export const useFileStore = defineStore('files', () => {
 
   const fileService = useFileService()
   const folderService = useFolderService()
+  const notify = useNotificationStore()
 
   const allItems = computed(() => {
     const q = searchQuery.value.toLowerCase()
@@ -38,6 +40,9 @@ export const useFileStore = defineStore('files', () => {
       ])
       folders.value = f
       files.value = fi
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load folder'
+      notify.error(message)
     } finally {
       isLoading.value = false
     }
@@ -58,9 +63,15 @@ export const useFileStore = defineStore('files', () => {
   }
 
   async function createFolder(name: string) {
-    const newFolder = await folderService.createFolder(name, currentFolderId.value)
-    folders.value.push(newFolder)
-    return newFolder
+    try {
+      const newFolder = await folderService.createFolder(name, currentFolderId.value)
+      folders.value.push(newFolder)
+      return newFolder
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create folder'
+      notify.error(message)
+      throw error
+    }
   }
 
   async function uploadFile(file: File) {
@@ -74,15 +85,27 @@ export const useFileStore = defineStore('files', () => {
   }
 
   async function deleteFile(id: string) {
-    await fileService.deleteFile(id)
-    files.value = files.value.filter((f) => f.id !== id)
-    selectedFiles.value.delete(id)
+    try {
+      await fileService.deleteFile(id)
+      files.value = files.value.filter((f) => f.id !== id)
+      selectedFiles.value.delete(id)
+      notify.success('File moved to trash')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete file'
+      notify.error(message)
+    }
   }
 
   async function deleteFolder(id: string) {
-    await folderService.deleteFolder(id)
-    folders.value = folders.value.filter((f) => f.id !== id)
-    selectedFolders.value.delete(id)
+    try {
+      await folderService.deleteFolder(id)
+      folders.value = folders.value.filter((f) => f.id !== id)
+      selectedFolders.value.delete(id)
+      notify.success('Folder moved to trash')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete folder'
+      notify.error(message)
+    }
   }
 
   function toggleFileSelection(id: string) {
