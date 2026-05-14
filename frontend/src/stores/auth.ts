@@ -7,6 +7,7 @@ import { useVaultStore } from '@/stores/vault'
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const isLoading = ref(false)
+  const initialCheckDone = ref(false)
   const isAuthenticated = computed(() => user.value !== null)
   const authService = useAuthService()
   let checkSessionPromise: Promise<void> | null = null
@@ -49,6 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }).finally(() => {
       isLoading.value = false
+      initialCheckDone.value = true
       checkSessionPromise = null
     })
 
@@ -78,5 +80,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, isLoading, isAuthenticated, login, logout, checkSession, register, changePassword }
+  return { user, isLoading, initialCheckDone, isAuthenticated, login, logout, checkSession, register, changePassword }
 })

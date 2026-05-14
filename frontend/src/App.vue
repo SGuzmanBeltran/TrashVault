@@ -20,10 +20,10 @@ onMounted(() => {
 
 <template>
   <NotificationPanel />
-  <VaultUnlockModal v-if="authStore.isAuthenticated && !vaultStore.isUnlocked" />
+  <VaultUnlockModal v-if="authStore.isAuthenticated && !vaultStore.isUnlocked && !vaultStore.isLoading" />
   <UploadPanel />
 
-  <div v-if="authStore.isLoading" class="flex min-h-screen items-center justify-center bg-surface">
+  <div v-if="!authStore.initialCheckDone" class="flex min-h-screen items-center justify-center bg-surface">
     <div class="w-full max-w-5xl space-y-6 px-6">
       <div class="skeleton h-8 w-48 rounded-lg" />
       <div class="skeleton h-4 w-64 rounded-lg" />
