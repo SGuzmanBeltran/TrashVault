@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import {
   Plus,
   Upload,
@@ -44,12 +44,21 @@ const isDragging = computed(() => dragCounter.value > 0)
 const previewFile = ref<FileItem | null>(null)
 const openMenuFileId = ref<string | null>(null)
 const showSortMenu = ref(false)
-const sortMenuRef = ref<HTMLElement | null>(null)
+const sortButtonRef = ref<HTMLElement | null>(null)
+const sortMenuPanelRef = ref<HTMLElement | null>(null)
+const sortMenuPosition = ref({ top: 0, right: 0 })
 const showMoveModal = ref(false)
 const moveExcludeFolderIds = ref<string[]>([])
 const filesRegionRef = ref<HTMLElement | null>(null)
 
 const sortOptions: { field: SortField; label: string }[] = [
+  { field: 'name', label: 'Name' },
+  { field: 'size', label: 'Size' },
+  { field: 'createdAt', label: 'Date' },
+  { field: 'mimeType', label: 'Type' },
+]
+
+const listSortHeaders: { field: SortField; label: string }[] = [
   { field: 'name', label: 'Name' },
   { field: 'size', label: 'Size' },
   { field: 'createdAt', label: 'Date' },
@@ -107,6 +116,9 @@ const contentGridClass = computed(() =>
 function setViewMode(mode: FileViewMode) {
   viewMode.value = mode
   saveFileViewMode(mode)
+  if (mode === 'list') {
+    showSortMenu.value = false
+  }
 }
 
 function sortDirectionLabel(field: SortField): string {
@@ -122,12 +134,45 @@ function sortDirectionLabel(field: SortField): string {
   return direction === 'asc' ? 'Oldest first' : 'Newest first'
 }
 
-function onClickDocument(event: MouseEvent) {
-  if (!sortMenuRef.value) return
-  if (!sortMenuRef.value.contains(event.target as Node)) {
-    showSortMenu.value = false
+function updateSortMenuPosition() {
+  const button = sortButtonRef.value
+  if (!button) return
+
+  const rect = button.getBoundingClientRect()
+  sortMenuPosition.value = {
+    top: rect.bottom + 6,
+    right: window.innerWidth - rect.right,
   }
 }
+
+function toggleSortMenu() {
+  if (!showSortMenu.value) {
+    updateSortMenuPosition()
+  }
+  showSortMenu.value = !showSortMenu.value
+}
+
+function onClickDocument(event: MouseEvent) {
+  const target = event.target as Node
+  if (sortButtonRef.value?.contains(target)) return
+  if (sortMenuPanelRef.value?.contains(target)) return
+  showSortMenu.value = false
+}
+
+function clearSortMenuListeners() {
+  window.removeEventListener('scroll', updateSortMenuPosition, true)
+  window.removeEventListener('resize', updateSortMenuPosition)
+}
+
+watch(showSortMenu, (open) => {
+  if (open) {
+    updateSortMenuPosition()
+    window.addEventListener('scroll', updateSortMenuPosition, true)
+    window.addEventListener('resize', updateSortMenuPosition)
+  } else {
+    clearSortMenuListeners()
+  }
+})
 
 onMounted(() => {
   fileStore.loadFolder(null)
@@ -140,6 +185,7 @@ onUnmounted(() => {
   document.removeEventListener('click', onClickDocument)
   document.removeEventListener('drop', resetDragOverlay)
   document.removeEventListener('dragend', resetDragOverlay)
+  clearSortMenuListeners()
 })
 
 function resetDragOverlay() {
@@ -523,10 +569,11 @@ async function onDrop(event: DragEvent) {
         </button>
       </div>
 
-      <div ref="sortMenuRef" class="relative">
+      <div v-if="viewMode !== 'list'" class="relative">
         <button
+          ref="sortButtonRef"
           class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
-          @click.stop="showSortMenu = !showSortMenu"
+          @click.stop="toggleSortMenu"
         >
           <component
             :is="fileStore.sort.direction === 'asc' ? SortAsc : SortDesc"
@@ -535,48 +582,77 @@ async function onDrop(event: DragEvent) {
           {{ sortLabel }}
         </button>
 
-        <Transition
-          enter-active-class="transition duration-150 ease-out"
-          enter-from-class="scale-95 opacity-0"
-          enter-to-class="scale-100 opacity-100"
-          leave-active-class="transition duration-100 ease-in"
-          leave-from-class="scale-100 opacity-100"
-          leave-to-class="scale-95 opacity-0"
-        >
-          <div
-            v-if="showSortMenu"
-            class="absolute right-0 top-full z-30 mt-1.5 w-52 overflow-hidden rounded-xl border border-surface-border bg-surface-raised shadow-xl shadow-black/30"
+        <Teleport to="body">
+          <Transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="scale-95 opacity-0"
+            enter-to-class="scale-100 opacity-100"
+            leave-active-class="transition duration-100 ease-in"
+            leave-from-class="scale-100 opacity-100"
+            leave-to-class="scale-95 opacity-0"
           >
-            <div class="border-b border-surface-border px-3 py-2.5">
-              <div class="text-sm font-medium text-surface-fg">Sort by</div>
-              <div class="text-xs text-surface-fg-subtle">Click again to reverse order</div>
-            </div>
-            <div class="p-1">
-              <button
-                v-for="option in sortOptions"
-                :key="option.field"
-                class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-surface-overlay"
-                :class="fileStore.sort.field === option.field ? 'text-surface-fg' : 'text-surface-fg-muted'"
-                @click.stop="fileStore.setSort(option.field)"
-              >
-                <span class="flex items-center gap-2">
-                  <Check
-                    class="h-4 w-4"
-                    :class="fileStore.sort.field === option.field ? 'opacity-100' : 'opacity-0'"
-                  />
-                  {{ option.label }}
-                </span>
-                <span
-                  v-if="fileStore.sort.field === option.field"
-                  class="text-xs text-surface-fg-subtle"
+            <div
+              v-if="showSortMenu"
+              ref="sortMenuPanelRef"
+              class="fixed z-50 w-52 overflow-hidden rounded-xl border border-surface-border bg-surface-raised shadow-xl shadow-black/30"
+              :style="{ top: `${sortMenuPosition.top}px`, right: `${sortMenuPosition.right}px` }"
+            >
+              <div class="border-b border-surface-border px-3 py-2.5">
+                <div class="text-sm font-medium text-surface-fg">Sort by</div>
+                <div class="text-xs text-surface-fg-subtle">Click again to reverse order</div>
+              </div>
+              <div class="p-1">
+                <button
+                  v-for="option in sortOptions"
+                  :key="option.field"
+                  class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-surface-overlay"
+                  :class="fileStore.sort.field === option.field ? 'text-surface-fg' : 'text-surface-fg-muted'"
+                  @click.stop="fileStore.setSort(option.field)"
                 >
-                  {{ sortDirectionLabel(option.field) }}
-                </span>
-              </button>
+                  <span class="flex items-center gap-2">
+                    <Check
+                      class="h-4 w-4"
+                      :class="fileStore.sort.field === option.field ? 'opacity-100' : 'opacity-0'"
+                    />
+                    {{ option.label }}
+                  </span>
+                  <span
+                    v-if="fileStore.sort.field === option.field"
+                    class="text-xs text-surface-fg-subtle"
+                  >
+                    {{ sortDirectionLabel(option.field) }}
+                  </span>
+                </button>
+              </div>
             </div>
-          </div>
-        </Transition>
+          </Transition>
+        </Teleport>
       </div>
+    </div>
+
+    <div
+      v-if="viewMode === 'list'"
+      class="mb-2 hidden grid-cols-[auto_1fr_5rem_7rem_2.5rem] gap-3 px-4 pb-2 text-xs font-medium uppercase tracking-wider sm:grid"
+    >
+      <span />
+      <button
+        v-for="header in listSortHeaders"
+        :key="header.field"
+        type="button"
+        class="flex items-center gap-1 text-left transition-colors hover:text-surface-fg"
+        :class="[
+          header.field === 'mimeType' ? 'justify-self-end' : '',
+          fileStore.sort.field === header.field ? 'text-surface-fg' : 'text-surface-fg-subtle',
+        ]"
+        @click="fileStore.setSort(header.field)"
+      >
+        {{ header.label }}
+        <component
+          :is="fileStore.sort.direction === 'asc' ? SortAsc : SortDesc"
+          v-if="fileStore.sort.field === header.field"
+          class="h-3 w-3"
+        />
+      </button>
     </div>
 
     <div
@@ -587,17 +663,6 @@ async function onDrop(event: DragEvent) {
     </div>
 
     <template v-else>
-      <div
-        v-if="viewMode === 'list' && hasVisibleItems"
-        class="mb-1 hidden grid-cols-[auto_1fr_5rem_7rem_2.5rem] gap-3 px-4 text-xs font-medium uppercase tracking-wider text-surface-fg-subtle sm:grid"
-      >
-        <span />
-        <span>Name</span>
-        <span>Size</span>
-        <span>Date</span>
-        <span />
-      </div>
-
       <div
         v-if="fileStore.allItems.folders.length > 0"
         class="space-y-3"
