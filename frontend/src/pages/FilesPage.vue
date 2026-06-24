@@ -20,8 +20,11 @@ import { useFolderService } from '@/services'
 import { useNotificationStore } from '@/stores/notification'
 import FileCard from '@/components/FileCard.vue'
 import FolderCard from '@/components/FolderCard.vue'
+import FileListRow from '@/components/FileListRow.vue'
+import FolderListRow from '@/components/FolderListRow.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
+import { loadFileViewMode, saveFileViewMode } from '@/lib/file-view-mode'
 import type { FileViewMode, FileItem, SortField } from '@/domain/types'
 
 const fileStore = useFileStore()
@@ -29,7 +32,7 @@ const uploadQueue = useUploadQueue()
 const folderService = useFolderService()
 const notify = useNotificationStore()
 
-const viewMode = ref<FileViewMode>('grid')
+const viewMode = ref<FileViewMode>(loadFileViewMode())
 const showNewFolder = ref(false)
 const newFolderName = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -71,6 +74,17 @@ const hasNoSearchResults = computed(
 const showContentLoading = computed(
   () => fileStore.isLoading || (fileStore.isSearchActive && fileStore.isSearching),
 )
+
+const hasVisibleItems = computed(
+  () =>
+    fileStore.allItems.folders.length > 0 ||
+    fileStore.allItems.files.length > 0,
+)
+
+function setViewMode(mode: FileViewMode) {
+  viewMode.value = mode
+  saveFileViewMode(mode)
+}
 
 function sortDirectionLabel(field: SortField): string {
   const { field: activeField, direction } = fileStore.sort
@@ -451,14 +465,14 @@ async function onDrop(event: DragEvent) {
         <button
           class="rounded-md p-1.5 transition-colors"
           :class="viewMode === 'grid' ? 'bg-surface-overlay text-surface-fg' : 'text-surface-fg-subtle hover:text-surface-fg'"
-          @click="viewMode = 'grid'"
+          @click="setViewMode('grid')"
         >
           <Grid3X3 class="h-4 w-4" />
         </button>
         <button
           class="rounded-md p-1.5 transition-colors"
           :class="viewMode === 'list' ? 'bg-surface-overlay text-surface-fg' : 'text-surface-fg-subtle hover:text-surface-fg'"
-          @click="viewMode = 'list'"
+          @click="setViewMode('list')"
         >
           <List class="h-4 w-4" />
         </button>
@@ -520,11 +534,25 @@ async function onDrop(event: DragEvent) {
       </div>
     </div>
 
-    <div v-if="showContentLoading" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <LoadingSkeleton variant="card" :count="6" />
+    <div
+      v-if="showContentLoading"
+      :class="viewMode === 'list' ? 'space-y-1' : 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'"
+    >
+      <LoadingSkeleton :variant="viewMode === 'list' ? 'row' : 'card'" :count="6" />
     </div>
 
     <template v-else>
+      <div
+        v-if="viewMode === 'list' && hasVisibleItems"
+        class="mb-1 hidden grid-cols-[auto_1fr_5rem_7rem_2.5rem] gap-3 px-4 text-xs font-medium uppercase tracking-wider text-surface-fg-subtle sm:grid"
+      >
+        <span />
+        <span>Name</span>
+        <span>Size</span>
+        <span>Date</span>
+        <span />
+      </div>
+
       <div
         v-if="fileStore.allItems.folders.length > 0"
         class="space-y-3"
@@ -532,14 +560,26 @@ async function onDrop(event: DragEvent) {
         <h3 class="text-xs font-medium uppercase tracking-wider text-surface-fg-subtle">
           Folders
         </h3>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          :class="viewMode === 'list' ? 'space-y-1' : 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'"
+        >
           <div
             v-for="(folder, i) in fileStore.allItems.folders"
             :key="folder.id"
             class="animate-in"
-            :class="`animate-stagger-${Math.min(i + 1, 6)}`"
+            :class="viewMode === 'grid' ? `animate-stagger-${Math.min(i + 1, 6)}` : ''"
           >
+            <FolderListRow
+              v-if="viewMode === 'list'"
+              :folder="folder"
+              :selected="fileStore.selectedFolders.has(folder.id)"
+              :location-path="fileStore.isSearchActive ? folder.path : undefined"
+              @open="handleOpenFolder"
+              @select="fileStore.toggleFolderSelection"
+              @delete="fileStore.deleteFolder"
+            />
             <FolderCard
+              v-else
               :folder="folder"
               :selected="fileStore.selectedFolders.has(folder.id)"
               :location-path="fileStore.isSearchActive ? folder.path : undefined"
@@ -558,14 +598,30 @@ async function onDrop(event: DragEvent) {
         <h3 class="text-xs font-medium uppercase tracking-wider text-surface-fg-subtle">
           Files
         </h3>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          :class="viewMode === 'list' ? 'space-y-1' : 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'"
+        >
           <div
             v-for="(file, i) in fileStore.allItems.files"
             :key="file.id"
             class="animate-in"
-            :class="[`animate-stagger-${Math.min(i + 1, 6)}`, openMenuFileId === file.id ? 'relative z-20' : '']"
+            :class="[
+              viewMode === 'grid' ? `animate-stagger-${Math.min(i + 1, 6)}` : '',
+              openMenuFileId === file.id ? 'relative z-20' : '',
+            ]"
           >
+            <FileListRow
+              v-if="viewMode === 'list'"
+              :file="file"
+              :selected="fileStore.selectedFiles.has(file.id)"
+              :location-path="fileStore.isSearchActive ? file.path : undefined"
+              @select="fileStore.toggleFileSelection"
+              @delete="fileStore.deleteFile"
+              @preview="handlePreviewFile"
+              @menu-change="(open) => openMenuFileId = open ? file.id : null"
+            />
             <FileCard
+              v-else
               :file="file"
               :selected="fileStore.selectedFiles.has(file.id)"
               :location-path="fileStore.isSearchActive ? file.path : undefined"
