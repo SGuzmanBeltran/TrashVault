@@ -1,5 +1,5 @@
 import { FolderEntity, FolderRepositoryPort, NewFolder } from '../../ports/repository/FolderRepository.port';
-import { and, eq, isNotNull, isNull } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, ilike } from 'drizzle-orm';
 
 import { db } from '../../db/index';
 import { folders } from '../../db/schema';
@@ -49,6 +49,22 @@ export class DrizzleFolderRepositoryAdapter implements FolderRepositoryPort {
   async findTrashedByUserId(userId: string): Promise<FolderEntity[]> {
     return db.select().from(folders).where(
       and(eq(folders.userId, userId), isNotNull(folders.trashedAt))
+    );
+  }
+
+  async findAllActiveByUserId(userId: string): Promise<FolderEntity[]> {
+    return db.select().from(folders).where(
+      and(eq(folders.userId, userId), isNull(folders.trashedAt))
+    );
+  }
+
+  async searchByName(userId: string, query: string): Promise<FolderEntity[]> {
+    return db.select().from(folders).where(
+      and(
+        eq(folders.userId, userId),
+        isNull(folders.trashedAt),
+        ilike(folders.name, `%${query}%`),
+      )
     );
   }
 

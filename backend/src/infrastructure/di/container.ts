@@ -13,6 +13,7 @@ import { S3StorageAdapter } from '../../adapters/storage/S3Storage.adapter';
 import { StatsService } from '../../services/StatsService.service';
 import { ThumbnailService } from '../../services/ThumbnailService.service';
 import { TrashService } from '../../services/TrashService.service';
+import { SearchService } from '../../services/SearchService.service';
 
 let storageInstance: StoragePort | null = null;
 let fileRepositoryInstance: FileRepositoryPort | null = null;
@@ -85,4 +86,8 @@ export function createTrashService(): TrashService {
 
 export function createEncryptionKeyService(): EncryptionKeyService {
   return new EncryptionKeyService(getEncryptionKeyRepository());
+}
+
+export function createSearchService(): SearchService {
+  return new SearchService(getFileRepository(), getFolderRepository());
 }

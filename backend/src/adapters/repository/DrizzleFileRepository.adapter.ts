@@ -1,5 +1,5 @@
 import { FileEntity, FileRepositoryPort, NewFile } from '../../ports/repository/FileRepository.port';
-import { and, eq, isNotNull, isNull } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, ilike } from 'drizzle-orm';
 
 import { db } from '../../db/index';
 import { files } from '../../db/schema';
@@ -49,6 +49,16 @@ export class DrizzleFileRepositoryAdapter implements FileRepositoryPort {
   async findTrashedByUserId(userId: string): Promise<FileEntity[]> {
     return db.select().from(files).where(
       and(eq(files.userId, userId), isNotNull(files.trashedAt))
+    );
+  }
+
+  async searchByName(userId: string, query: string): Promise<FileEntity[]> {
+    return db.select().from(files).where(
+      and(
+        eq(files.userId, userId),
+        isNull(files.trashedAt),
+        ilike(files.name, `%${query}%`),
+      )
     );
   }
 
