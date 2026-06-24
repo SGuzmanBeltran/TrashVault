@@ -3,6 +3,7 @@ import { FolderEntity, FolderRepositoryPort } from '../ports/repository/FolderRe
 import { FileRepositoryPort } from '../ports/repository/FileRepository.port';
 import { StoragePort } from '../ports/storage/Storage.port';
 import { wrapRepositoryError, NotFoundError, ServiceError } from '../errors';
+import { zipSync } from 'fflate';
 
 export interface CreateFolderParams {
   id: string;
@@ -10,6 +11,24 @@ export interface CreateFolderParams {
   name: string;
   parentId: string | null;
 }
+
+interface FolderZipEntry {
+  zipPath: string;
+  mimeType: string;
+  key: string;
+}
+
+interface FolderZipManifest {
+  version: 1;
+  files: { path: string; mimeType: string }[];
+}
+
+export interface FolderZipDownload {
+  buffer: Uint8Array;
+  filename: string;
+}
+
+const MANIFEST_PATH = '__trashvault__/manifest.json';
 
 export class FolderService {
   constructor(
@@ -95,6 +114,41 @@ export class FolderService {
     }
   }
 
+  async buildFolderZipBuffer(folderId: string, userId: string): Promise<FolderZipDownload> {
+    try {
+      const folder = await this.folderRepository.findById(folderId, userId);
+      if (!folder || folder.trashedAt) {
+        throw new NotFoundError('Folder not found');
+      }
+
+      const entries = await this.collectFolderZipEntries(folderId, userId, folder.name);
+      const manifest: FolderZipManifest = {
+        version: 1,
+        files: entries.map((entry) => ({
+          path: entry.zipPath,
+          mimeType: entry.mimeType,
+        })),
+      };
+
+      const zipEntries: Record<string, Uint8Array> = {
+        [MANIFEST_PATH]: new TextEncoder().encode(JSON.stringify(manifest)),
+      };
+
+      for (const entry of entries) {
+        const buffer = await this.storage.download(entry.key);
+        zipEntries[entry.zipPath] = new Uint8Array(buffer);
+      }
+
+      return {
+        buffer: zipSync(zipEntries),
+        filename: `${sanitizeZipSegment(folder.name)}.zip`,
+      };
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
+      throw wrapRepositoryError(error);
+    }
+  }
+
   async permanentDeleteFolder(id: string, userId: string): Promise<void> {
     try {
       const folderIds = await this.collectFolderIds(id, userId);
@@ -103,6 +157,37 @@ export class FolderService {
     } catch (error) {
       throw wrapRepositoryError(error);
     }
+  }
+
+  private async collectFolderZipEntries(
+    folderId: string,
+    userId: string,
+    pathPrefix: string,
+  ): Promise<FolderZipEntry[]> {
+    const entries: FolderZipEntry[] = [];
+
+    const files = await this.fileRepository.findByUserId(userId, folderId);
+    for (const file of files) {
+      if (file.trashedAt) continue;
+      entries.push({
+        zipPath: `${pathPrefix}/${sanitizeZipSegment(file.name)}`,
+        mimeType: file.mimeType,
+        key: file.key,
+      });
+    }
+
+    const children = await this.folderRepository.findByUserId(userId, folderId);
+    for (const child of children) {
+      if (child.trashedAt) continue;
+      const nested = await this.collectFolderZipEntries(
+        child.id,
+        userId,
+        `${pathPrefix}/${sanitizeZipSegment(child.name)}`,
+      );
+      entries.push(...nested);
+    }
+
+    return entries;
   }
 
   private async collectFolderIds(rootId: string, userId: string): Promise<string[]> {
@@ -139,4 +224,8 @@ export class FolderService {
       await this.folderRepository.permanentDelete(folderIds[i], userId);
     }
   }
+}
+
+function sanitizeZipSegment(name: string): string {
+  return name.replace(/[/\\]/g, '_').replace(/\0/g, '') || 'untitled';
 }

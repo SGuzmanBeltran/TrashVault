@@ -23,6 +23,15 @@ export const folderRoutes = new Elysia({ prefix: '/folders' })
   }, {
     auth: true,
   })
+  .get('/:id/download', async ({ user, params, set }) => {
+    const folderService = createFolderService();
+    const result = await folderService.buildFolderZipBuffer(params.id, user!.id);
+    set.headers['content-type'] = 'application/zip';
+    set.headers['content-disposition'] = `attachment; filename="${result.filename}"`;
+    return new Response(result.buffer);
+  }, {
+    auth: true,
+  })
   .get('/:id', async ({ user, params }) => {
     const folderService = createFolderService();
     return folderService.getFolder(params.id, user!.id);
