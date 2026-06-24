@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { Folder, MoreVertical, Trash2 } from 'lucide-vue-next'
+import { Folder, MoreVertical, Trash2, Download, Loader2 } from 'lucide-vue-next'
 import { ref } from 'vue'
 import type { Folder as FolderType } from '@/domain/types'
 import { formatDate } from '@/utils'
+import { useFolderService } from '@/services'
+import { useNotificationStore } from '@/stores/notification'
 
-defineProps<{
+const props = defineProps<{
   folder: FolderType
   selected?: boolean
   locationPath?: string
@@ -16,7 +18,30 @@ const emit = defineEmits<{
   delete: [id: string]
 }>()
 
+const folderService = useFolderService()
+const notify = useNotificationStore()
 const showMenu = ref(false)
+const isDownloading = ref(false)
+
+async function downloadFolder() {
+  isDownloading.value = true
+  try {
+    const result = await folderService.downloadFolder(props.folder.id)
+    const a = document.createElement('a')
+    a.href = result.blobUrl
+    a.download = result.filename
+    a.click()
+    if (result.blobUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(result.blobUrl)
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to download folder'
+    notify.error(message)
+  } finally {
+    isDownloading.value = false
+    showMenu.value = false
+  }
+}
 </script>
 
 <template>
@@ -70,6 +95,15 @@ const showMenu = ref(false)
           class="absolute right-0 top-full z-30 mt-1 w-40 overflow-hidden rounded-xl border border-surface-border bg-surface-raised shadow-xl shadow-black/30"
         >
           <div class="p-1">
+            <button
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="isDownloading"
+              @click.stop="downloadFolder"
+            >
+              <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
+              <Download v-else class="h-4 w-4" />
+              Download
+            </button>
             <button
               class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"
               @click.stop="emit('delete', folder.id); showMenu = false"

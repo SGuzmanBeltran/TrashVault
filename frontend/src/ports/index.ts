@@ -26,6 +26,7 @@ export interface FolderPort {
   createFolder(name: string, parentId: string | null): Promise<Folder>
   deleteFolder(id: string): Promise<void>
   moveFolder(id: string, parentId: string | null): Promise<Folder>
+  downloadFolder(id: string): Promise<{ blobUrl: string; filename: string }>
 }
 
 export interface AuthPort {

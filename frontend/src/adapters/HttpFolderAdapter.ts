@@ -1,6 +1,9 @@
 import type { FolderPort } from '@/ports'
 import type { Folder } from '@/domain/types'
 import { apiFetchJSON } from '@/lib/api-fetch'
+import { decryptFile } from '@/lib/crypto'
+import { useVaultStore } from '@/stores/vault'
+import { unzipSync, zipSync } from 'fflate'
 
 interface BackendFolder {
   id: string
@@ -9,6 +12,13 @@ interface BackendFolder {
   createdAt: string
   trashedAt: string | null
 }
+
+interface FolderZipManifest {
+  version: 1
+  files: { path: string; mimeType: string }[]
+}
+
+const MANIFEST_PATH = '__trashvault__/manifest.json'
 
 function mapFolder(item: BackendFolder): Folder {
   return {
@@ -50,5 +60,36 @@ export class HttpFolderAdapter implements FolderPort {
       body: JSON.stringify({ parentId }),
     })
     return mapFolder(item)
+  }
+
+  async downloadFolder(id: string): Promise<{ blobUrl: string; filename: string }> {
+    const vaultStore = useVaultStore()
+    if (!vaultStore.dek) throw new Error('Vault is locked')
+
+    const folder = await this.getFolder(id)
+    const resp = await fetch(`/api/folders/${id}/download`, { credentials: 'include' })
+    if (!resp.ok) throw new Error('Failed to download folder')
+
+    const encryptedZip = new Uint8Array(await resp.arrayBuffer())
+    const contents = unzipSync(encryptedZip)
+    const manifestBytes = contents[MANIFEST_PATH]
+    if (!manifestBytes) throw new Error('Invalid folder archive')
+
+    const manifest = JSON.parse(new TextDecoder().decode(manifestBytes)) as FolderZipManifest
+    const decryptedZip: Record<string, Uint8Array> = {}
+
+    for (const file of manifest.files) {
+      const encrypted = contents[file.path]
+      if (!encrypted) continue
+      const encryptedBuffer = encrypted.slice().buffer as ArrayBuffer
+      const plaintext = await decryptFile(encryptedBuffer, vaultStore.dek)
+      decryptedZip[file.path] = new Uint8Array(plaintext)
+    }
+
+    const blob = new Blob([zipSync(decryptedZip)], { type: 'application/zip' })
+    return {
+      blobUrl: URL.createObjectURL(blob),
+      filename: `${folder.name}.zip`,
+    }
   }
 }
