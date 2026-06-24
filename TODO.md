@@ -146,7 +146,7 @@ folders {
 ### Slice 2: List View & Bulk Operations
 
 - [x] 2a. List view — compact row template (icon, name, size, date), persist viewMode to localStorage
-- [ ] 2b. Bulk operations — action bar (delete, move, clear), `PATCH /files/:id` backend endpoint, Shift+click range select
+- [x] 2b. Bulk operations — action bar (delete, move, clear), `PATCH /files/:id` backend endpoint, Shift+click range select
 
 ### Slice 3: Keyboard Shortcuts & Folder Download
 

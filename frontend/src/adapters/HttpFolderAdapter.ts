@@ -43,4 +43,12 @@ export class HttpFolderAdapter implements FolderPort {
   async deleteFolder(id: string): Promise<void> {
     await apiFetchJSON(`/folders/${id}`, { method: 'DELETE' })
   }
+
+  async moveFolder(id: string, parentId: string | null): Promise<Folder> {
+    const item = await apiFetchJSON<BackendFolder>(`/folders/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ parentId }),
+    })
+    return mapFolder(item)
+  }
 }

@@ -16,6 +16,8 @@ export const useFileStore = defineStore('files', () => {
   const isSearching = ref(false)
   const selectedFiles = ref<Set<string>>(new Set())
   const selectedFolders = ref<Set<string>>(new Set())
+  const lastSelectIndex = ref<number | null>(null)
+  const isBulkOperating = ref(false)
   const sort = ref<SortConfig>({ field: 'name', direction: 'asc' })
   const searchQuery = ref('')
 
@@ -76,6 +78,25 @@ export const useFileStore = defineStore('files', () => {
       files: sortItems(source.files, field, direction, 'file'),
     }
   })
+
+  type SelectableKind = 'folder' | 'file'
+
+  const flatSelectableItems = computed(() => {
+    const items: { kind: SelectableKind; id: string }[] = []
+    for (const folder of allItems.value.folders) {
+      items.push({ kind: 'folder', id: folder.id })
+    }
+    for (const file of allItems.value.files) {
+      items.push({ kind: 'file', id: file.id })
+    }
+    return items
+  })
+
+  const selectionCount = computed(
+    () => selectedFiles.value.size + selectedFolders.value.size,
+  )
+
+  const hasSelection = computed(() => selectionCount.value > 0)
 
   function setSort(field: SortField) {
     if (sort.value.field === field) {
@@ -177,6 +198,7 @@ export const useFileStore = defineStore('files', () => {
 
   async function navigateToFolder(folderId: string | null, name: string) {
     clearSearch()
+    clearSelection()
 
     if (folderId === null) {
       breadcrumbs.value = [{ id: null, name: 'My Files' }]
@@ -193,6 +215,7 @@ export const useFileStore = defineStore('files', () => {
 
   async function openFolderFromSearch(folderId: string) {
     clearSearch()
+    clearSelection()
 
     const chain: Breadcrumb[] = []
     let currentId: string | null = folderId
@@ -275,9 +298,115 @@ export const useFileStore = defineStore('files', () => {
     }
   }
 
+  function selectItem(kind: SelectableKind, id: string, shiftKey: boolean) {
+    const items = flatSelectableItems.value
+    const index = items.findIndex((item) => item.kind === kind && item.id === id)
+    if (index === -1) return
+
+    if (shiftKey && lastSelectIndex.value !== null) {
+      const start = Math.min(lastSelectIndex.value, index)
+      const end = Math.max(lastSelectIndex.value, index)
+      for (let i = start; i <= end; i++) {
+        const item = items[i]!
+        if (item.kind === 'folder') selectedFolders.value.add(item.id)
+        else selectedFiles.value.add(item.id)
+      }
+      return
+    }
+
+    if (kind === 'folder') toggleFolderSelection(id)
+    else toggleFileSelection(id)
+    lastSelectIndex.value = index
+  }
+
   function clearSelection() {
     selectedFiles.value.clear()
     selectedFolders.value.clear()
+    lastSelectIndex.value = null
+  }
+
+  async function collectExcludedMoveFolderIds(): Promise<string[]> {
+    const excluded = new Set<string>(selectedFolders.value)
+    const queue = [...selectedFolders.value]
+
+    while (queue.length > 0) {
+      const parentId = queue.shift()!
+      const children = await folderService.listFolders(parentId)
+      for (const child of children) {
+        if (!excluded.has(child.id)) {
+          excluded.add(child.id)
+          queue.push(child.id)
+        }
+      }
+    }
+
+    return Array.from(excluded)
+  }
+
+  async function bulkDelete() {
+    if (!hasSelection.value) return
+
+    isBulkOperating.value = true
+    const fileIds = [...selectedFiles.value]
+    const folderIds = [...selectedFolders.value]
+
+    try {
+      for (const id of fileIds) {
+        await fileService.deleteFile(id)
+        files.value = files.value.filter((file) => file.id !== id)
+        removeFromSearchResults(id)
+      }
+
+      for (const id of folderIds) {
+        await folderService.deleteFolder(id)
+        folders.value = folders.value.filter((folder) => folder.id !== id)
+        removeFromSearchResults(undefined, id)
+      }
+
+      const total = fileIds.length + folderIds.length
+      notify.success(
+        total === 1 ? 'Item moved to trash' : `${total} items moved to trash`,
+      )
+      clearSelection()
+
+      if (isSearchActive.value && searchQuery.value.trim()) {
+        await performSearch()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete items'
+      notify.error(message)
+    } finally {
+      isBulkOperating.value = false
+    }
+  }
+
+  async function bulkMove(destinationFolderId: string | null) {
+    if (!hasSelection.value) return
+
+    isBulkOperating.value = true
+    const fileIds = [...selectedFiles.value]
+    const folderIds = [...selectedFolders.value]
+
+    try {
+      await Promise.all([
+        ...fileIds.map((id) => fileService.moveFile(id, destinationFolderId)),
+        ...folderIds.map((id) => folderService.moveFolder(id, destinationFolderId)),
+      ])
+
+      await loadFolder(currentFolderId.value)
+      if (isSearchActive.value && searchQuery.value.trim()) {
+        await performSearch()
+      }
+
+      const total = fileIds.length + folderIds.length
+      notify.success(total === 1 ? 'Item moved' : `${total} items moved`)
+      clearSelection()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to move items'
+      notify.error(message)
+    } finally {
+      isBulkOperating.value = false
+    }
   }
 
   return {
@@ -288,12 +417,16 @@ export const useFileStore = defineStore('files', () => {
     breadcrumbs,
     isLoading,
     isSearching,
+    isBulkOperating,
     isSearchActive,
     selectedFiles,
     selectedFolders,
+    selectionCount,
+    hasSelection,
     sort,
     searchQuery,
     allItems,
+    flatSelectableItems,
     loadFolder,
     navigateToFolder,
     openFolderFromSearch,
@@ -303,7 +436,11 @@ export const useFileStore = defineStore('files', () => {
     deleteFolder,
     toggleFileSelection,
     toggleFolderSelection,
+    selectItem,
     clearSelection,
+    collectExcludedMoveFolderIds,
+    bulkDelete,
+    bulkMove,
     setSort,
     setSearchQuery,
     clearSearch,

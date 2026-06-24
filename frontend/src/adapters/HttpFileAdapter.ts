@@ -1,6 +1,6 @@
 import type { FilePort, UploadProgressCallbacks } from '@/ports'
 import type { FileItem } from '@/domain/types'
-import { apiFetch } from '@/lib/api-fetch'
+import { apiFetch, apiFetchJSON } from '@/lib/api-fetch'
 import { uploadWithProgress } from '@/lib/xhr-upload'
 import { encryptFile, decryptFile } from '@/lib/crypto'
 import { generateThumbnail, canGenerateThumbnail } from '@/lib/thumbnail'
@@ -46,6 +46,14 @@ export class HttpFileAdapter implements FilePort {
 
   async deleteFile(id: string): Promise<void> {
     await apiFetch(`/files/${id}`, { method: 'DELETE' })
+  }
+
+  async moveFile(id: string, folderId: string | null): Promise<FileItem> {
+    const item = await apiFetchJSON<BackendFileItem>(`/files/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ folderId }),
+    })
+    return mapFile(item)
   }
 
   async downloadFile(id: string): Promise<{ blobUrl: string; filename: string; mimeType: string }> {

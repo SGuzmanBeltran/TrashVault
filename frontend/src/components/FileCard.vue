@@ -29,7 +29,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  select: [id: string]
+  select: [id: string, event: MouseEvent]
   delete: [id: string]
   preview: [file: FileItem]
   menuChange: [open: boolean]
@@ -182,7 +182,7 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
       showMenu ? 'z-20' : '',
     ]"
     draggable="true"
-    @click="emit('select', file.id)"
+    @click="emit('select', file.id, $event)"
     @dblclick.stop="emit('preview', file)"
     @dragstart="onDragStart"
     @dragend="onDragEnd"
@@ -294,7 +294,7 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
       showMenu ? 'z-20' : '',
     ]"
     draggable="true"
-    @click="emit('select', file.id)"
+    @click="emit('select', file.id, $event)"
     @dblclick.stop="emit('preview', file)"
     @dragstart="onDragStart"
     @dragend="onDragEnd"

@@ -12,7 +12,7 @@ defineProps<{
 
 const emit = defineEmits<{
   open: [id: string]
-  select: [id: string]
+  select: [id: string, event: MouseEvent]
   delete: [id: string]
 }>()
 
@@ -24,7 +24,7 @@ const showMenu = ref(false)
     class="group grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl border border-surface-border bg-surface-raised px-3 py-2.5 transition-all duration-200 hover:border-surface-border/80 hover:bg-surface-overlay/40 sm:grid-cols-[auto_1fr_5rem_7rem_2.5rem] sm:px-4"
     :class="selected ? 'border-accent/40 ring-1 ring-accent/20' : ''"
     @dblclick="emit('open', folder.id)"
-    @click="emit('select', folder.id)"
+    @click="emit('select', folder.id, $event)"
   >
     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10">
       <Folder class="h-4 w-4 text-accent" />

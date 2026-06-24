@@ -29,7 +29,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  select: [id: string]
+  select: [id: string, event: MouseEvent]
   delete: [id: string]
   preview: [file: FileItem]
   menuChange: [open: boolean]
@@ -126,7 +126,7 @@ async function downloadFile() {
   <div
     class="group grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl border border-surface-border bg-surface-raised px-3 py-2.5 transition-all duration-200 hover:border-surface-border/80 hover:bg-surface-overlay/40 sm:grid-cols-[auto_1fr_5rem_7rem_2.5rem] sm:px-4"
     :class="selected ? 'border-accent/40 ring-1 ring-accent/20' : ''"
-    @click="emit('select', file.id)"
+    @click="emit('select', file.id, $event)"
   >
     <div
       class="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg"

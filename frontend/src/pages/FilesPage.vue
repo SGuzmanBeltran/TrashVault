@@ -24,6 +24,8 @@ import FileListRow from '@/components/FileListRow.vue'
 import FolderListRow from '@/components/FolderListRow.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
+import BulkActionBar from '@/components/BulkActionBar.vue'
+import MoveToFolderModal from '@/components/MoveToFolderModal.vue'
 import { loadFileViewMode, saveFileViewMode } from '@/lib/file-view-mode'
 import type { FileViewMode, FileItem, SortField } from '@/domain/types'
 
@@ -43,6 +45,8 @@ const previewFile = ref<FileItem | null>(null)
 const openMenuFileId = ref<string | null>(null)
 const showSortMenu = ref(false)
 const sortMenuRef = ref<HTMLElement | null>(null)
+const showMoveModal = ref(false)
+const moveExcludeFolderIds = ref<string[]>([])
 
 const sortOptions: { field: SortField; label: string }[] = [
   { field: 'name', label: 'Name' },
@@ -230,6 +234,24 @@ function handlePreviewFile(file: FileItem) {
   previewFile.value = file
 }
 
+function handleItemSelect(kind: 'file' | 'folder', id: string, event: MouseEvent) {
+  fileStore.selectItem(kind, id, event.shiftKey)
+}
+
+async function openMoveModal() {
+  moveExcludeFolderIds.value = await fileStore.collectExcludedMoveFolderIds()
+  showMoveModal.value = true
+}
+
+async function handleMoveConfirm(destinationFolderId: string | null) {
+  showMoveModal.value = false
+  await fileStore.bulkMove(destinationFolderId)
+}
+
+async function handleBulkDelete() {
+  await fileStore.bulkDelete()
+}
+
 async function handleCreateFolder() {
   if (!newFolderName.value.trim()) return
   await fileStore.createFolder(newFolderName.value.trim())
@@ -329,6 +351,31 @@ async function onDrop(event: DragEvent) {
 </script>
 
 <template>
+  <MoveToFolderModal
+    v-if="showMoveModal"
+    :exclude-folder-ids="moveExcludeFolderIds"
+    @close="showMoveModal = false"
+    @confirm="handleMoveConfirm"
+  />
+
+  <Transition
+    enter-active-class="transition duration-200 ease-out"
+    enter-from-class="translate-y-4 opacity-0"
+    enter-to-class="translate-y-0 opacity-100"
+    leave-active-class="transition duration-150 ease-in"
+    leave-from-class="translate-y-0 opacity-100"
+    leave-to-class="translate-y-4 opacity-0"
+  >
+    <BulkActionBar
+      v-if="fileStore.hasSelection"
+      :count="fileStore.selectionCount"
+      :is-loading="fileStore.isBulkOperating"
+      @move="openMoveModal"
+      @delete="handleBulkDelete"
+      @clear="fileStore.clearSelection()"
+    />
+  </Transition>
+
   <FilePreviewModal
     v-if="previewFile"
     :file="previewFile"
@@ -593,7 +640,7 @@ async function onDrop(event: DragEvent) {
               :selected="fileStore.selectedFolders.has(folder.id)"
               :location-path="fileStore.isSearchActive ? folder.path : undefined"
               @open="handleOpenFolder"
-              @select="fileStore.toggleFolderSelection"
+              @select="(id, event) => handleItemSelect('folder', id, event)"
               @delete="fileStore.deleteFolder"
             />
             <FolderCard
@@ -602,7 +649,7 @@ async function onDrop(event: DragEvent) {
               :selected="fileStore.selectedFolders.has(folder.id)"
               :location-path="fileStore.isSearchActive ? folder.path : undefined"
               @open="handleOpenFolder"
-              @select="fileStore.toggleFolderSelection"
+              @select="(id, event) => handleItemSelect('folder', id, event)"
               @delete="fileStore.deleteFolder"
             />
           </div>
@@ -633,7 +680,7 @@ async function onDrop(event: DragEvent) {
               :file="file"
               :selected="fileStore.selectedFiles.has(file.id)"
               :location-path="fileStore.isSearchActive ? file.path : undefined"
-              @select="fileStore.toggleFileSelection"
+              @select="(id, event) => handleItemSelect('file', id, event)"
               @delete="fileStore.deleteFile"
               @preview="handlePreviewFile"
               @menu-change="(open) => openMenuFileId = open ? file.id : null"
@@ -643,7 +690,7 @@ async function onDrop(event: DragEvent) {
               :file="file"
               :selected="fileStore.selectedFiles.has(file.id)"
               :location-path="fileStore.isSearchActive ? file.path : undefined"
-              @select="fileStore.toggleFileSelection"
+              @select="(id, event) => handleItemSelect('file', id, event)"
               @delete="fileStore.deleteFile"
               @preview="handlePreviewFile"
               @menu-change="(open) => openMenuFileId = open ? file.id : null"
