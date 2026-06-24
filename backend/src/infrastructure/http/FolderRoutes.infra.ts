@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia';
+import { Elysia, t } from 'elysia';
 import { createFolderService } from '../di/container';
 import { randomUUID } from 'crypto';
 import { authMacro } from './auth.plugin';
@@ -28,6 +28,15 @@ export const folderRoutes = new Elysia({ prefix: '/folders' })
     return folderService.getFolder(params.id, user!.id);
   }, {
     auth: true,
+  })
+  .patch('/:id', async ({ user, params, body }) => {
+    const folderService = createFolderService();
+    return folderService.moveFolder(params.id, user!.id, body.parentId);
+  }, {
+    auth: true,
+    body: t.Object({
+      parentId: t.Union([t.String(), t.Null()]),
+    }),
   })
   .delete('/:id', async ({ user, params }) => {
     const folderService = createFolderService();

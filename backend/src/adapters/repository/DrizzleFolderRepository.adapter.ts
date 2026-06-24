@@ -34,6 +34,16 @@ export class DrizzleFolderRepositoryAdapter implements FolderRepositoryPort {
     );
   }
 
+  async updateParentId(id: string, userId: string, parentId: string | null): Promise<FolderEntity | null> {
+    const result = await db.update(folders)
+      .set({ parentId })
+      .where(
+        and(eq(folders.id, id), eq(folders.userId, userId), isNull(folders.trashedAt)),
+      )
+      .returning();
+    return result[0] || null;
+  }
+
   async moveToTrash(id: string, userId: string): Promise<void> {
     await db.update(folders).set({ trashedAt: new Date() }).where(
       and(eq(folders.id, id), eq(folders.userId, userId))

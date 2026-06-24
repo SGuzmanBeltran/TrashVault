@@ -2,7 +2,7 @@ import { FolderEntity, FolderRepositoryPort } from '../ports/repository/FolderRe
 
 import { FileRepositoryPort } from '../ports/repository/FileRepository.port';
 import { StoragePort } from '../ports/storage/Storage.port';
-import { wrapRepositoryError, wrapStorageError } from '../errors';
+import { wrapRepositoryError, NotFoundError, ServiceError } from '../errors';
 
 export interface CreateFolderParams {
   id: string;
@@ -56,6 +56,41 @@ export class FolderService {
         await this.folderRepository.moveToTrash(folderId, userId);
       }
     } catch (error) {
+      throw wrapRepositoryError(error);
+    }
+  }
+
+  async moveFolder(id: string, userId: string, parentId: string | null): Promise<FolderEntity> {
+    try {
+      const folder = await this.folderRepository.findById(id, userId);
+      if (!folder || folder.trashedAt) {
+        throw new NotFoundError('Folder not found');
+      }
+
+      if (parentId === id) {
+        throw new ServiceError(400, 'Cannot move folder into itself');
+      }
+
+      if (parentId) {
+        const descendants = await this.collectFolderIds(id, userId);
+        if (descendants.includes(parentId)) {
+          throw new ServiceError(400, 'Cannot move folder into its subfolder');
+        }
+
+        const parent = await this.folderRepository.findById(parentId, userId);
+        if (!parent || parent.trashedAt) {
+          throw new NotFoundError('Destination folder not found');
+        }
+      }
+
+      const updated = await this.folderRepository.updateParentId(id, userId, parentId);
+      if (!updated) {
+        throw new NotFoundError('Folder not found');
+      }
+
+      return updated;
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
       throw wrapRepositoryError(error);
     }
   }

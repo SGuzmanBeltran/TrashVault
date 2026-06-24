@@ -44,6 +44,15 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
   }, {
     auth: true,
   })
+  .patch('/:id', async ({ user, params, body }) => {
+    const fileService = createFileService();
+    return fileService.moveFile(params.id, user!.id, body.folderId);
+  }, {
+    auth: true,
+    body: t.Object({
+      folderId: t.Union([t.String(), t.Null()]),
+    }),
+  })
   .get('/:id/download', async ({ user, params }) => {
     const fileService = createFileService();
     const url = await fileService.getDownloadUrl(params.id, user!.id);

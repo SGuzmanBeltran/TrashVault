@@ -69,7 +69,7 @@ export function createThumbnailService(): ThumbnailService {
 }
 
 export function createFileService(): FileService {
-  return new FileService(getFileRepository(), getStorage(), createThumbnailService());
+  return new FileService(getFileRepository(), getFolderRepository(), getStorage(), createThumbnailService());
 }
 
 export function createFolderService(): FolderService {

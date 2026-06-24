@@ -1,5 +1,6 @@
 import { FileEntity, FileRepositoryPort } from '../ports/repository/FileRepository.port';
-import { StorageError, wrapRepositoryError, wrapStorageError } from '../errors';
+import { FolderRepositoryPort } from '../ports/repository/FolderRepository.port';
+import { wrapRepositoryError, wrapStorageError, NotFoundError, ServiceError, StorageError } from '../errors';
 
 import { StoragePort } from '../ports/storage/Storage.port';
 import { ThumbnailService } from './ThumbnailService.service';
@@ -20,6 +21,7 @@ export interface CreateFileParams {
 export class FileService {
   constructor(
     private fileRepository: FileRepositoryPort,
+    private folderRepository: FolderRepositoryPort,
     private storage: StoragePort,
     private thumbnailService: ThumbnailService,
   ) {}
@@ -96,6 +98,32 @@ export class FileService {
       if (!file) return;
       await this.fileRepository.moveToTrash(id, userId);
     } catch (error) {
+      throw wrapRepositoryError(error);
+    }
+  }
+
+  async moveFile(id: string, userId: string, folderId: string | null): Promise<FileEntity> {
+    try {
+      const file = await this.fileRepository.findById(id, userId);
+      if (!file || file.trashedAt) {
+        throw new NotFoundError('File not found');
+      }
+
+      if (folderId) {
+        const folder = await this.folderRepository.findById(folderId, userId);
+        if (!folder || folder.trashedAt) {
+          throw new NotFoundError('Destination folder not found');
+        }
+      }
+
+      const updated = await this.fileRepository.updateFolderId(id, userId, folderId);
+      if (!updated) {
+        throw new NotFoundError('File not found');
+      }
+
+      return updated;
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
       throw wrapRepositoryError(error);
     }
   }

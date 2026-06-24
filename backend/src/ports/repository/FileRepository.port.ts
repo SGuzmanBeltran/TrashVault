@@ -19,6 +19,7 @@ export interface FileRepositoryPort {
   findById(id: string, userId: string): Promise<FileEntity | null>;
   findByUserId(userId: string, folderId?: string | null): Promise<FileEntity[]>;
   delete(id: string, userId: string): Promise<void>;
+  updateFolderId(id: string, userId: string, folderId: string | null): Promise<FileEntity | null>;
   moveToTrash(id: string, userId: string): Promise<void>;
   restoreFromTrash(id: string, userId: string): Promise<void>;
   findTrashedByUserId(userId: string): Promise<FileEntity[]>;
