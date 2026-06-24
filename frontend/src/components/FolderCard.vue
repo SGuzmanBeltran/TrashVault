@@ -58,7 +58,7 @@ async function downloadFolder() {
   <div
     class="group relative flex aspect-square cursor-pointer flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-raised transition-all duration-200 hover:border-accent/20 hover:shadow-lg hover:shadow-black/10"
     :class="[
-      selected ? 'border-accent/40 ring-2 ring-accent/25' : '',
+      selected ? 'border-accent ring-2 ring-accent/45' : '',
       isDropTarget ? 'border-accent bg-accent/10 ring-2 ring-accent/40' : '',
     ]"
     @dblclick="emit('open', folder.id)"

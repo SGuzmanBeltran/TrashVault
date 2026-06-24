@@ -184,7 +184,7 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
     ref="cardRef"
     class="group relative aspect-square cursor-pointer rounded-xl border border-surface-border bg-surface-overlay transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/20"
     :class="[
-      selected ? 'border-accent/40 ring-2 ring-accent/25' : '',
+      selected ? 'border-accent ring-2 ring-accent/45' : '',
       isDragging ? 'opacity-50 ring-1 ring-accent/40' : '',
       showMenu ? 'z-20 overflow-visible' : 'overflow-hidden',
     ]"
@@ -299,7 +299,7 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
     ref="cardRef"
     class="group relative flex aspect-square cursor-pointer flex-col rounded-xl border border-surface-border bg-surface-raised transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/10"
     :class="[
-      selected ? 'border-accent/40 ring-2 ring-accent/25' : '',
+      selected ? 'border-accent ring-2 ring-accent/45' : '',
       isDragging ? 'opacity-50 ring-1 ring-accent/40' : '',
       showMenu ? 'z-20 overflow-visible' : 'overflow-hidden',
     ]"
