@@ -27,6 +27,7 @@ import FilePreviewModal from '@/components/FilePreviewModal.vue'
 import BulkActionBar from '@/components/BulkActionBar.vue'
 import MoveToFolderModal from '@/components/MoveToFolderModal.vue'
 import { loadFileViewMode, saveFileViewMode } from '@/lib/file-view-mode'
+import { useFileKeyboardShortcuts, isSelectAllShortcut, isTextEditingTarget } from '@/composables/useFileKeyboardShortcuts'
 import type { FileViewMode, FileItem, SortField } from '@/domain/types'
 
 const fileStore = useFileStore()
@@ -47,6 +48,7 @@ const showSortMenu = ref(false)
 const sortMenuRef = ref<HTMLElement | null>(null)
 const showMoveModal = ref(false)
 const moveExcludeFolderIds = ref<string[]>([])
+const filesRegionRef = ref<HTMLElement | null>(null)
 
 const sortOptions: { field: SortField; label: string }[] = [
   { field: 'name', label: 'Name' },
@@ -252,6 +254,89 @@ async function handleBulkDelete() {
   await fileStore.bulkDelete()
 }
 
+function handleKeyboardDelete() {
+  if (!fileStore.hasSelection || fileStore.isBulkOperating) return false
+  void handleBulkDelete()
+  return true
+}
+
+function handleKeyboardEnter() {
+  const fileIds = fileStore.selectedFileIds
+  const folderIds = fileStore.selectedFolderIds
+
+  if (fileIds.length === 1 && folderIds.length === 0) {
+    const file = fileStore.allItems.files.find((f) => f.id === fileIds[0])
+    if (file) {
+      handlePreviewFile(file)
+      return true
+    }
+    return false
+  }
+
+  if (folderIds.length === 1 && fileIds.length === 0) {
+    handleOpenFolder(folderIds[0]!)
+    return true
+  }
+
+  return false
+}
+
+function handleKeyboardEscape() {
+  if (previewFile.value) {
+    previewFile.value = null
+    return
+  }
+  if (showMoveModal.value) {
+    showMoveModal.value = false
+    return
+  }
+  if (showNewFolder.value) {
+    showNewFolder.value = false
+    return
+  }
+  if (showSortMenu.value) {
+    showSortMenu.value = false
+    return
+  }
+  if (fileStore.hasSelection) {
+    fileStore.clearSelection()
+  }
+}
+
+function handleKeyboardSelectAll() {
+  if (fileStore.isBulkOperating) return
+  fileStore.selectAll()
+}
+
+function focusFilesRegion(event: MouseEvent) {
+  const target = event.target
+  if (target instanceof HTMLElement) {
+    const tag = target.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) {
+      return
+    }
+  }
+  filesRegionRef.value?.focus({ preventScroll: true })
+}
+
+function onFilesRegionKeydown(event: KeyboardEvent) {
+  if (!isSelectAllShortcut(event)) return
+  if (isTextEditingTarget(event.target)) return
+
+  event.preventDefault()
+  event.stopPropagation()
+  if (!fileStore.isBulkOperating) fileStore.selectAll()
+}
+
+useFileKeyboardShortcuts({
+  onDelete: handleKeyboardDelete,
+  onEnter: handleKeyboardEnter,
+  onEscape: handleKeyboardEscape,
+  onSelectAll: handleKeyboardSelectAll,
+  onUpload: triggerFileSelect,
+  isDisabled: () => fileStore.isBulkOperating,
+})
+
 async function handleCreateFolder() {
   if (!newFolderName.value.trim()) return
   await fileStore.createFolder(newFolderName.value.trim())
@@ -382,7 +467,11 @@ async function onDrop(event: DragEvent) {
     @close="previewFile = null"
   />
   <div
-    class="relative mx-auto min-h-full max-w-5xl space-y-6"
+    ref="filesRegionRef"
+    tabindex="-1"
+    class="relative mx-auto min-h-full max-w-5xl space-y-6 outline-none"
+    @mousedown="focusFilesRegion"
+    @keydown="onFilesRegionKeydown"
     @dragenter="onDragEnter"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
@@ -637,7 +726,7 @@ async function onDrop(event: DragEvent) {
             <FolderListRow
               v-if="viewMode === 'list'"
               :folder="folder"
-              :selected="fileStore.selectedFolders.has(folder.id)"
+              :selected="fileStore.selectedFolderIds.includes(folder.id)"
               :location-path="fileStore.isSearchActive ? folder.path : undefined"
               @open="handleOpenFolder"
               @select="(id, event) => handleItemSelect('folder', id, event)"
@@ -646,7 +735,7 @@ async function onDrop(event: DragEvent) {
             <FolderCard
               v-else
               :folder="folder"
-              :selected="fileStore.selectedFolders.has(folder.id)"
+              :selected="fileStore.selectedFolderIds.includes(folder.id)"
               :location-path="fileStore.isSearchActive ? folder.path : undefined"
               @open="handleOpenFolder"
               @select="(id, event) => handleItemSelect('folder', id, event)"
@@ -678,7 +767,7 @@ async function onDrop(event: DragEvent) {
             <FileListRow
               v-if="viewMode === 'list'"
               :file="file"
-              :selected="fileStore.selectedFiles.has(file.id)"
+              :selected="fileStore.selectedFileIds.includes(file.id)"
               :location-path="fileStore.isSearchActive ? file.path : undefined"
               @select="(id, event) => handleItemSelect('file', id, event)"
               @delete="fileStore.deleteFile"
@@ -688,7 +777,7 @@ async function onDrop(event: DragEvent) {
             <FileCard
               v-else
               :file="file"
-              :selected="fileStore.selectedFiles.has(file.id)"
+              :selected="fileStore.selectedFileIds.includes(file.id)"
               :location-path="fileStore.isSearchActive ? file.path : undefined"
               @select="(id, event) => handleItemSelect('file', id, event)"
               @delete="fileStore.deleteFile"

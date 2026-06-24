@@ -150,7 +150,7 @@ folders {
 
 ### Slice 3: Keyboard Shortcuts & Folder Download
 
-- [ ] 3a. Keyboard shortcuts — Del (delete), Enter (preview), Esc (clear/close), Ctrl+A (select all), Ctrl+U (upload)
+- [x] 3a. Keyboard shortcuts — Del (delete), Enter (preview), Esc (clear/close), Ctrl+A (select all), Ctrl+U (upload)
 - [ ] 3b. Folder download — `GET /folders/:id/download` backend zip endpoint, frontend "Download" on FolderCard menu
 
 ### Slice 4: Drag Features

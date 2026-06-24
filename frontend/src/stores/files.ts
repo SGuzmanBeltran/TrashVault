@@ -96,6 +96,9 @@ export const useFileStore = defineStore('files', () => {
     () => selectedFiles.value.size + selectedFolders.value.size,
   )
 
+  const selectedFileIds = computed(() => Array.from(selectedFiles.value))
+  const selectedFolderIds = computed(() => Array.from(selectedFolders.value))
+
   const hasSelection = computed(() => selectionCount.value > 0)
 
   function setSort(field: SortField) {
@@ -325,6 +328,13 @@ export const useFileStore = defineStore('files', () => {
     lastSelectIndex.value = null
   }
 
+  function selectAll() {
+    selectedFiles.value = new Set(allItems.value.files.map((file) => file.id))
+    selectedFolders.value = new Set(allItems.value.folders.map((folder) => folder.id))
+    const items = flatSelectableItems.value
+    lastSelectIndex.value = items.length > 0 ? items.length - 1 : null
+  }
+
   async function collectExcludedMoveFolderIds(): Promise<string[]> {
     const excluded = new Set<string>(selectedFolders.value)
     const queue = [...selectedFolders.value]
@@ -421,6 +431,8 @@ export const useFileStore = defineStore('files', () => {
     isSearchActive,
     selectedFiles,
     selectedFolders,
+    selectedFileIds,
+    selectedFolderIds,
     selectionCount,
     hasSelection,
     sort,
@@ -438,6 +450,7 @@ export const useFileStore = defineStore('files', () => {
     toggleFolderSelection,
     selectItem,
     clearSelection,
+    selectAll,
     collectExcludedMoveFolderIds,
     bulkDelete,
     bulkMove,
