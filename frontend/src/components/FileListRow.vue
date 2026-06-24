@@ -23,6 +23,7 @@ import { useFileStore } from '@/stores/files'
 import { useVaultStore } from '@/stores/vault'
 import { useNotificationStore } from '@/stores/notification'
 import { setFileDragData, endFileDrag } from '@/lib/file-drag'
+import { setFileDragPreview, removeFileDragPreview } from '@/lib/file-drag-preview'
 
 const props = defineProps<{
   file: FileItem
@@ -131,12 +132,14 @@ function onDragStart(event: DragEvent) {
     ? fileStore.selectedFileIds
     : [props.file.id]
   setFileDragData(event.dataTransfer, fileIds)
+  setFileDragPreview(event, fileIds.length)
   isDragging.value = true
 }
 
 function onDragEnd() {
   isDragging.value = false
   endFileDrag()
+  removeFileDragPreview()
 }
 </script>
 

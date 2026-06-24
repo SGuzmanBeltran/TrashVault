@@ -16,6 +16,7 @@ import { useFileStore } from '@/stores/files'
 import { useUploadQueue } from '@/composables/useUploadQueue'
 import { useExternalFolderUpload } from '@/composables/useExternalFolderUpload'
 import { isExternalFileDrag, isInternalFileDrag, endFileDrag } from '@/lib/file-drag'
+import { removeFileDragPreview } from '@/lib/file-drag-preview'
 import FileCard from '@/components/FileCard.vue'
 import FolderCard from '@/components/FolderCard.vue'
 import FileListRow from '@/components/FileListRow.vue'
@@ -144,6 +145,7 @@ onUnmounted(() => {
 function resetDragOverlay() {
   dragCounter.value = 0
   endFileDrag()
+  removeFileDragPreview()
 }
 
 function triggerFileSelect() {
