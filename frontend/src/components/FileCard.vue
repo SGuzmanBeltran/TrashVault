@@ -19,8 +19,10 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { FileItem } from '@/domain/types'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
 import { useFileService } from '@/services'
+import { useFileStore } from '@/stores/files'
 import { useVaultStore } from '@/stores/vault'
 import { useNotificationStore } from '@/stores/notification'
+import { setFileDragData } from '@/lib/file-drag'
 
 const props = defineProps<{
   file: FileItem
@@ -36,6 +38,7 @@ const emit = defineEmits<{
 }>()
 
 const fileService = useFileService()
+const fileStore = useFileStore()
 const vaultStore = useVaultStore()
 const notify = useNotificationStore()
 const cardRef = ref<HTMLElement | null>(null)
@@ -60,7 +63,6 @@ onUnmounted(() => document.removeEventListener('click', onClickDocument))
 
 const thumbnailUrl = ref<string | null>(null)
 const thumbnailError = ref(false)
-const downloadUrl = ref<string | null>(null)
 const isDragging = ref(false)
 const isDownloading = ref(false)
 const isImageLike = computed(() => props.file.mimeType.startsWith('image/'))
@@ -119,10 +121,11 @@ async function downloadFile() {
 }
 
 function onDragStart(event: DragEvent) {
-  if (!downloadUrl.value || !event.dataTransfer) return
-  event.dataTransfer.effectAllowed = 'copy'
-  const downloadData = `${props.file.mimeType}:${props.file.name}:${downloadUrl.value}`
-  event.dataTransfer.setData('DownloadURL', downloadData)
+  if (!event.dataTransfer) return
+  const fileIds = fileStore.selectedFileIds.includes(props.file.id)
+    ? fileStore.selectedFileIds
+    : [props.file.id]
+  setFileDragData(event.dataTransfer, fileIds)
   isDragging.value = true
 }
 

@@ -16,8 +16,8 @@ import {
 } from 'lucide-vue-next'
 import { useFileStore } from '@/stores/files'
 import { useUploadQueue } from '@/composables/useUploadQueue'
-import { useFolderService } from '@/services'
-import { useNotificationStore } from '@/stores/notification'
+import { useExternalFolderUpload } from '@/composables/useExternalFolderUpload'
+import { isExternalFileDrag, isInternalFileDrag } from '@/lib/file-drag'
 import FileCard from '@/components/FileCard.vue'
 import FolderCard from '@/components/FolderCard.vue'
 import FileListRow from '@/components/FileListRow.vue'
@@ -32,8 +32,7 @@ import type { FileViewMode, FileItem, SortField } from '@/domain/types'
 
 const fileStore = useFileStore()
 const uploadQueue = useUploadQueue()
-const folderService = useFolderService()
-const notify = useNotificationStore()
+const { uploadExternalDrop, processFolderUpload } = useExternalFolderUpload()
 
 const viewMode = ref<FileViewMode>(loadFileViewMode())
 const showNewFolder = ref(false)
@@ -133,11 +132,19 @@ function onClickDocument(event: MouseEvent) {
 onMounted(() => {
   fileStore.loadFolder(null)
   document.addEventListener('click', onClickDocument)
+  document.addEventListener('drop', resetDragOverlay)
+  document.addEventListener('dragend', resetDragOverlay)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', onClickDocument)
+  document.removeEventListener('drop', resetDragOverlay)
+  document.removeEventListener('dragend', resetDragOverlay)
 })
+
+function resetDragOverlay() {
+  dragCounter.value = 0
+}
 
 function triggerFileSelect() {
   fileInput.value?.click()
@@ -168,54 +175,12 @@ async function handleFolderSelect(event: Event) {
     .filter((file) => !isHiddenPath(file.webkitRelativePath))
     .map((file) => ({ file, path: file.webkitRelativePath }))
 
-  await processFolderUpload(entries)
+  await processFolderUpload(entries, fileStore.currentFolderId)
   target.value = ''
 }
 
 function isHiddenPath(path: string): boolean {
   return path.split('/').some((segment) => segment.startsWith('.'))
-}
-
-async function processFolderUpload(entries: { file: File; path: string }[]) {
-  const folderPaths = new Set<string>()
-
-  for (const { path } of entries) {
-    const parts = path.split('/')
-    for (let i = 1; i < parts.length; i++) {
-      folderPaths.add(parts.slice(0, i).join('/'))
-    }
-  }
-
-  const sorted = Array.from(folderPaths).sort(
-    (a, b) => a.split('/').length - b.split('/').length,
-  )
-
-  const pathToId = new Map<string, string>()
-
-  for (const path of sorted) {
-    const parts = path.split('/')
-    const name = parts[parts.length - 1]!
-    const parentPath = parts.slice(0, -1).join('/')
-    const parentId = parentPath ? pathToId.get(parentPath) ?? null : fileStore.currentFolderId
-
-    try {
-      const folder = await folderService.createFolder(name, parentId)
-      pathToId.set(path, folder.id)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : `Failed to create folder "${name}"`
-      notify.error(message)
-      return
-    }
-  }
-
-  fileStore.loadFolder(fileStore.currentFolderId)
-
-  for (const { file, path } of entries) {
-    const parts = path.split('/')
-    const folderPath = parts.slice(0, -1).join('/')
-    const folderId = pathToId.get(folderPath) ?? fileStore.currentFolderId
-    uploadQueue.addUpload(file, folderId)
-  }
 }
 
 function handleOpenFolder(id: string) {
@@ -344,47 +309,14 @@ async function handleCreateFolder() {
   showNewFolder.value = false
 }
 
-async function readDirectoryEntries(
-  entry: FileSystemDirectoryEntry,
-): Promise<{ file: File; path: string }[]> {
-  const reader = entry.createReader()
-  const allEntries: { file: File; path: string }[] = []
-
-  async function readBatch(): Promise<void> {
-    const entries = await new Promise<FileSystemEntry[]>((resolve, reject) => {
-      reader.readEntries(resolve, reject)
-    })
-
-    if (entries.length === 0) return
-
-    for (const e of entries) {
-      if (e.name.startsWith('.')) continue
-
-      if (e.isFile) {
-        const file = await new Promise<File>((resolve, reject) => {
-          (e as FileSystemFileEntry).file(resolve, reject)
-        })
-        const path = e.fullPath.replace(/^\//, '')
-        allEntries.push({ file, path })
-      } else if (e.isDirectory) {
-        const nested = await readDirectoryEntries(e as FileSystemDirectoryEntry)
-        allEntries.push(...nested)
-      }
-    }
-
-    await readBatch()
-  }
-
-  await readBatch()
-  return allEntries
-}
-
 function onDragEnter(event: DragEvent) {
+  if (!isExternalFileDrag(event)) return
   event.preventDefault()
   dragCounter.value++
 }
 
 function onDragOver(event: DragEvent) {
+  if (!isExternalFileDrag(event)) return
   event.preventDefault()
   if (event.dataTransfer) {
     event.dataTransfer.dropEffect = 'copy'
@@ -392,46 +324,17 @@ function onDragOver(event: DragEvent) {
 }
 
 function onDragLeave(event: DragEvent) {
+  if (dragCounter.value === 0) return
   event.preventDefault()
   dragCounter.value--
+  if (dragCounter.value < 0) dragCounter.value = 0
 }
 
 async function onDrop(event: DragEvent) {
   event.preventDefault()
   dragCounter.value = 0
-
-  const items = event.dataTransfer?.items
-  if (!items || items.length === 0) return
-
-  const entries: FileSystemEntry[] = []
-  for (const item of items) {
-    const entry = item.webkitGetAsEntry?.()
-    if (entry) entries.push(entry)
-  }
-
-  const hasDirectories = entries.some((e) => e.isDirectory)
-
-  if (hasDirectories) {
-    const allEntries: { file: File; path: string }[] = []
-    for (const entry of entries) {
-      if (entry.isDirectory) {
-        const files = await readDirectoryEntries(entry as FileSystemDirectoryEntry)
-        allEntries.push(...files)
-      } else if (entry.isFile) {
-        const file = await new Promise<File>((resolve, reject) => {
-          (entry as FileSystemFileEntry).file(resolve, reject)
-        })
-        allEntries.push({ file, path: file.name })
-      }
-    }
-    await processFolderUpload(allEntries)
-  } else {
-    const droppedFiles = event.dataTransfer?.files
-    if (!droppedFiles) return
-    for (const file of droppedFiles) {
-      uploadQueue.addUpload(file)
-    }
-  }
+  if (isInternalFileDrag(event)) return
+  await uploadExternalDrop(event, fileStore.currentFolderId)
 }
 </script>
 

@@ -4,7 +4,10 @@ import { ref } from 'vue'
 import type { Folder as FolderType } from '@/domain/types'
 import { formatDate } from '@/utils'
 import { useFolderService } from '@/services'
+import { useFileStore } from '@/stores/files'
 import { useNotificationStore } from '@/stores/notification'
+import { useFolderDropTarget } from '@/composables/useFolderDropTarget'
+import { useExternalFolderUpload } from '@/composables/useExternalFolderUpload'
 
 const props = defineProps<{
   folder: FolderType
@@ -19,9 +22,16 @@ const emit = defineEmits<{
 }>()
 
 const folderService = useFolderService()
+const fileStore = useFileStore()
 const notify = useNotificationStore()
+const { uploadExternalDrop } = useExternalFolderUpload()
 const showMenu = ref(false)
 const isDownloading = ref(false)
+
+const { isDropTarget, onDragEnter, onDragOver, onDragLeave, onDrop } = useFolderDropTarget({
+  onMoveFiles: (fileIds) => fileStore.moveFilesToFolder(fileIds, props.folder.id),
+  onExternalDrop: (event) => uploadExternalDrop(event, props.folder.id),
+})
 
 async function downloadFolder() {
   isDownloading.value = true
@@ -47,9 +57,16 @@ async function downloadFolder() {
 <template>
   <div
     class="group relative flex aspect-square cursor-pointer flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-raised transition-all duration-200 hover:border-accent/20 hover:shadow-lg hover:shadow-black/10"
-    :class="selected ? 'border-accent/40 ring-2 ring-accent/25' : ''"
+    :class="[
+      selected ? 'border-accent/40 ring-2 ring-accent/25' : '',
+      isDropTarget ? 'border-accent bg-accent/10 ring-2 ring-accent/40' : '',
+    ]"
     @dblclick="emit('open', folder.id)"
     @click="emit('select', folder.id, $event)"
+    @dragenter="onDragEnter"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
   >
     <div class="flex flex-1 items-center justify-center bg-accent/10">
       <Folder class="h-12 w-12 text-accent" />

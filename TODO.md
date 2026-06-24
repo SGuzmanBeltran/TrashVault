@@ -155,8 +155,8 @@ folders {
 
 ### Slice 4: Drag Features
 
-- [ ] 4a. Drag files to folders — dragstart on FileCard, dragover/drop on FolderCard, move via API, visual highlight
-- [ ] 4b. Drag-to-upload to folder — detect external drops on FolderCard, upload directly to that folder
+- [x] 4a. Drag files to folders — dragstart on FileCard, dragover/drop on FolderCard, move via API, visual highlight
+- [x] 4b. Drag-to-upload to folder — detect external drops on FolderCard, upload directly to that folder
 
 ## Commands
 

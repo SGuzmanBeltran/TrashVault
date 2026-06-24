@@ -19,8 +19,10 @@ import { ref, computed, watch } from 'vue'
 import type { FileItem } from '@/domain/types'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
 import { useFileService } from '@/services'
+import { useFileStore } from '@/stores/files'
 import { useVaultStore } from '@/stores/vault'
 import { useNotificationStore } from '@/stores/notification'
+import { setFileDragData } from '@/lib/file-drag'
 
 const props = defineProps<{
   file: FileItem
@@ -36,10 +38,12 @@ const emit = defineEmits<{
 }>()
 
 const fileService = useFileService()
+const fileStore = useFileStore()
 const vaultStore = useVaultStore()
 const notify = useNotificationStore()
 const showMenu = ref(false)
 const isDownloading = ref(false)
+const isDragging = ref(false)
 const thumbnailUrl = ref<string | null>(null)
 const thumbnailError = ref(false)
 
@@ -120,13 +124,32 @@ async function downloadFile() {
     emit('menuChange', false)
   }
 }
+
+function onDragStart(event: DragEvent) {
+  if (!event.dataTransfer) return
+  const fileIds = fileStore.selectedFileIds.includes(props.file.id)
+    ? fileStore.selectedFileIds
+    : [props.file.id]
+  setFileDragData(event.dataTransfer, fileIds)
+  isDragging.value = true
+}
+
+function onDragEnd() {
+  isDragging.value = false
+}
 </script>
 
 <template>
   <div
     class="group grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl border border-surface-border bg-surface-raised px-3 py-2.5 transition-all duration-200 hover:border-surface-border/80 hover:bg-surface-overlay/40 sm:grid-cols-[auto_1fr_5rem_7rem_2.5rem] sm:px-4"
-    :class="selected ? 'border-accent/40 ring-1 ring-accent/20' : ''"
+    :class="[
+      selected ? 'border-accent/40 ring-1 ring-accent/20' : '',
+      isDragging ? 'opacity-50 ring-1 ring-accent/40' : '',
+    ]"
+    draggable="true"
     @click="emit('select', file.id, $event)"
+    @dragstart="onDragStart"
+    @dragend="onDragEnd"
   >
     <div
       class="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg"

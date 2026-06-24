@@ -390,6 +390,33 @@ export const useFileStore = defineStore('files', () => {
     }
   }
 
+  async function moveFilesToFolder(fileIds: string[], destinationFolderId: string) {
+    const uniqueIds = [...new Set(fileIds)]
+    const sourceFiles = isSearchActive.value && searchResults.value
+      ? searchResults.value.files
+      : files.value
+
+    const movableIds = uniqueIds.filter((id) => {
+      const file = sourceFiles.find((item) => item.id === id)
+      return file && file.folderId !== destinationFolderId
+    })
+
+    if (movableIds.length === 0) return
+
+    try {
+      await Promise.all(movableIds.map((id) => fileService.moveFile(id, destinationFolderId)))
+      await loadFolder(currentFolderId.value)
+      if (isSearchActive.value && searchQuery.value.trim()) {
+        await performSearch()
+      }
+      clearSelection()
+      notify.success(movableIds.length === 1 ? 'File moved' : `${movableIds.length} files moved`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to move files'
+      notify.error(message)
+    }
+  }
+
   async function bulkMove(destinationFolderId: string | null) {
     if (!hasSelection.value) return
 
@@ -454,6 +481,7 @@ export const useFileStore = defineStore('files', () => {
     collectExcludedMoveFolderIds,
     bulkDelete,
     bulkMove,
+    moveFilesToFolder,
     setSort,
     setSearchQuery,
     clearSearch,
