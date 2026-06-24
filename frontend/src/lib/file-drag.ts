@@ -1,12 +1,29 @@
+import { ref } from 'vue'
+
 export const FILE_DRAG_MIME = 'application/x-trashvault-files'
 
 export interface FileDragPayload {
   fileIds: string[]
 }
 
+const activeFileDrag = ref(false)
+
+export function isFileDragActive(): boolean {
+  return activeFileDrag.value
+}
+
+export function startFileDrag(_fileIds: string[]): void {
+  activeFileDrag.value = true
+}
+
+export function endFileDrag(): void {
+  activeFileDrag.value = false
+}
+
 export function setFileDragData(dataTransfer: DataTransfer, fileIds: string[]): void {
   dataTransfer.effectAllowed = 'move'
   dataTransfer.setData(FILE_DRAG_MIME, JSON.stringify({ fileIds }))
+  startFileDrag(fileIds)
 }
 
 export function getFileDragData(dataTransfer: DataTransfer): FileDragPayload | null {
@@ -23,12 +40,16 @@ export function getFileDragData(dataTransfer: DataTransfer): FileDragPayload | n
 }
 
 export function isInternalFileDrag(event: DragEvent): boolean {
+  if (activeFileDrag.value) return true
+
   const types = event.dataTransfer?.types
   if (!types) return false
   return Array.from(types).includes(FILE_DRAG_MIME)
 }
 
 export function isExternalFileDrag(event: DragEvent): boolean {
+  if (activeFileDrag.value) return false
+
   const types = event.dataTransfer?.types
   if (!types) return false
   const typeList = Array.from(types)

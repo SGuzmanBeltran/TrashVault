@@ -390,7 +390,7 @@ export const useFileStore = defineStore('files', () => {
     }
   }
 
-  async function moveFilesToFolder(fileIds: string[], destinationFolderId: string) {
+  async function moveFilesToFolder(fileIds: string[], destinationFolderId: string | null) {
     const uniqueIds = [...new Set(fileIds)]
     const sourceFiles = isSearchActive.value && searchResults.value
       ? searchResults.value.files

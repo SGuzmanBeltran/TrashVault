@@ -11,18 +11,30 @@ interface FolderDropHandlers {
   onExternalDrop: (event: DragEvent) => void | Promise<void>
 }
 
-export function useFolderDropTarget(handlers: FolderDropHandlers) {
+interface FolderDropTargetOptions {
+  canDrop?: () => boolean
+}
+
+export function useFolderDropTarget(
+  handlers: FolderDropHandlers,
+  options?: FolderDropTargetOptions,
+) {
   const isDropTarget = ref(false)
 
+  function canAccept(event: DragEvent) {
+    if (options?.canDrop && !options.canDrop()) return false
+    return acceptsFolderDrop(event)
+  }
+
   function onDragEnter(event: DragEvent) {
-    if (!acceptsFolderDrop(event)) return
+    if (!canAccept(event)) return
     event.preventDefault()
     event.stopPropagation()
     isDropTarget.value = true
   }
 
   function onDragOver(event: DragEvent) {
-    if (!acceptsFolderDrop(event)) return
+    if (!canAccept(event)) return
     event.preventDefault()
     event.stopPropagation()
     if (event.dataTransfer) {
@@ -41,6 +53,7 @@ export function useFolderDropTarget(handlers: FolderDropHandlers) {
   }
 
   async function onDrop(event: DragEvent) {
+    if (options?.canDrop && !options.canDrop()) return
     event.preventDefault()
     event.stopPropagation()
     isDropTarget.value = false

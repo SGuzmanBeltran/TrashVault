@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed } from 'vue'
 import {
-  ChevronRight,
   Plus,
   Upload,
   Grid3X3,
@@ -10,14 +9,13 @@ import {
   SortDesc,
   Check,
   FolderPlus,
-  Home,
   UploadCloud,
   FolderUp,
 } from 'lucide-vue-next'
 import { useFileStore } from '@/stores/files'
 import { useUploadQueue } from '@/composables/useUploadQueue'
 import { useExternalFolderUpload } from '@/composables/useExternalFolderUpload'
-import { isExternalFileDrag, isInternalFileDrag } from '@/lib/file-drag'
+import { isExternalFileDrag, isInternalFileDrag, endFileDrag } from '@/lib/file-drag'
 import FileCard from '@/components/FileCard.vue'
 import FolderCard from '@/components/FolderCard.vue'
 import FileListRow from '@/components/FileListRow.vue'
@@ -26,6 +24,7 @@ import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
 import BulkActionBar from '@/components/BulkActionBar.vue'
 import MoveToFolderModal from '@/components/MoveToFolderModal.vue'
+import BreadcrumbNav from '@/components/BreadcrumbNav.vue'
 import { loadFileViewMode, saveFileViewMode } from '@/lib/file-view-mode'
 import { useFileKeyboardShortcuts, isSelectAllShortcut, isTextEditingTarget } from '@/composables/useFileKeyboardShortcuts'
 import type { FileViewMode, FileItem, SortField } from '@/domain/types'
@@ -144,6 +143,7 @@ onUnmounted(() => {
 
 function resetDragOverlay() {
   dragCounter.value = 0
+  endFileDrag()
 }
 
 function triggerFileSelect() {
@@ -497,25 +497,11 @@ async function onDrop(event: DragEvent) {
       </button>
     </div>
 
-    <div
+    <BreadcrumbNav
       v-else
-      class="animate-in animate-stagger-1 flex items-center gap-1.5 text-sm"
-    >
-      <button
-        v-for="(crumb, index) in fileStore.breadcrumbs"
-        :key="crumb.id ?? 'root'"
-        class="flex items-center gap-1.5 transition-colors"
-        :class="index === fileStore.breadcrumbs.length - 1 ? 'text-surface-fg font-medium' : 'text-surface-fg-muted hover:text-surface-fg cursor-pointer'"
-        @click="index < fileStore.breadcrumbs.length - 1 && handleBreadcrumb(crumb.id, crumb.name)"
-      >
-        <Home v-if="index === 0" class="h-3.5 w-3.5" />
-        <span>{{ crumb.name }}</span>
-        <ChevronRight
-          v-if="index < fileStore.breadcrumbs.length - 1"
-          class="h-3.5 w-3.5 text-surface-fg-subtle"
-        />
-      </button>
-    </div>
+      :breadcrumbs="fileStore.breadcrumbs"
+      @navigate="handleBreadcrumb"
+    />
 
     <div class="animate-in animate-stagger-2 flex items-center justify-between">
       <div class="flex items-center gap-1 rounded-lg border border-surface-border p-0.5">

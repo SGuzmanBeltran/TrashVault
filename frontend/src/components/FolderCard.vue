@@ -64,7 +64,7 @@ async function downloadFolder() {
     @dblclick="emit('open', folder.id)"
     @click="emit('select', folder.id, $event)"
     @dragenter="onDragEnter"
-    @dragover="onDragOver"
+    @dragover.prevent="onDragOver"
     @dragleave="onDragLeave"
     @drop="onDrop"
   >

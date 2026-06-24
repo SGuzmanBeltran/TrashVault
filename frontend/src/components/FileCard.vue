@@ -22,7 +22,7 @@ import { useFileService } from '@/services'
 import { useFileStore } from '@/stores/files'
 import { useVaultStore } from '@/stores/vault'
 import { useNotificationStore } from '@/stores/notification'
-import { setFileDragData } from '@/lib/file-drag'
+import { setFileDragData, endFileDrag } from '@/lib/file-drag'
 
 const props = defineProps<{
   file: FileItem
@@ -131,6 +131,7 @@ function onDragStart(event: DragEvent) {
 
 function onDragEnd() {
   isDragging.value = false
+  endFileDrag()
 }
 
 const iconMap: Record<string, typeof File> = {
