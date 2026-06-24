@@ -43,18 +43,18 @@ const fileStore = useFileStore()
 const vaultStore = useVaultStore()
 const notify = useNotificationStore()
 const cardRef = ref<HTMLElement | null>(null)
-const menuBtnRef = ref<HTMLElement | null>(null)
 const showMenu = ref(false)
 
 watch(showMenu, (open) => emit('menuChange', open))
 
+function toggleMenu() {
+  showMenu.value = !showMenu.value
+}
+
 function onClickDocument(e: MouseEvent) {
   if (!cardRef.value) return
   const target = e.target as Node
-
-  if (menuBtnRef.value?.contains(target)) {
-    showMenu.value = !showMenu.value
-  } else if (!cardRef.value.contains(target)) {
+  if (!cardRef.value.contains(target)) {
     showMenu.value = false
   }
 }
@@ -182,11 +182,11 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
   <div
     v-if="useVisualLayout"
     ref="cardRef"
-    class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-surface-border bg-surface-overlay transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/20"
+    class="group relative aspect-square cursor-pointer rounded-xl border border-surface-border bg-surface-overlay transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/20"
     :class="[
       selected ? 'border-accent/40 ring-2 ring-accent/25' : '',
       isDragging ? 'opacity-50 ring-1 ring-accent/40' : '',
-      showMenu ? 'z-20' : '',
+      showMenu ? 'z-20 overflow-visible' : 'overflow-hidden',
     ]"
     draggable="true"
     @click="emit('select', file.id, $event)"
@@ -194,15 +194,19 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
     @dragstart="onDragStart"
     @dragend="onDragEnd"
   >
-    <img
+    <div
       v-if="showThumbnail && thumbnailUrl"
-      :src="thumbnailUrl"
-      :alt="file.name"
-      class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-      loading="lazy"
-      @error="thumbnailError = true"
-      @load="thumbnailError = false"
-    />
+      class="absolute inset-0 overflow-hidden rounded-xl"
+    >
+      <img
+        :src="thumbnailUrl"
+        :alt="file.name"
+        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+        loading="lazy"
+        @error="thumbnailError = true"
+        @load="thumbnailError = false"
+      />
+    </div>
 
     <div
       v-else-if="isThumbnailLoading"
@@ -240,10 +244,9 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
 
     <div class="absolute right-2 top-2">
       <button
-        ref="menuBtnRef"
         class="rounded-lg bg-black/45 p-1.5 text-white/90 opacity-0 backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-black/60"
         :class="showMenu ? 'opacity-100' : ''"
-        @click.stop
+        @click.stop="toggleMenu"
       >
         <MoreVertical class="h-4 w-4" />
       </button>
@@ -294,11 +297,11 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
   <div
     v-else
     ref="cardRef"
-    class="group relative flex aspect-square cursor-pointer flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-raised transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/10"
+    class="group relative flex aspect-square cursor-pointer flex-col rounded-xl border border-surface-border bg-surface-raised transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/10"
     :class="[
       selected ? 'border-accent/40 ring-2 ring-accent/25' : '',
       isDragging ? 'opacity-50 ring-1 ring-accent/40' : '',
-      showMenu ? 'z-20' : '',
+      showMenu ? 'z-20 overflow-visible' : 'overflow-hidden',
     ]"
     draggable="true"
     @click="emit('select', file.id, $event)"
@@ -325,10 +328,9 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
 
     <div class="absolute right-2 top-2">
       <button
-        ref="menuBtnRef"
         class="rounded-lg bg-surface-raised/80 p-1.5 text-surface-fg-muted opacity-0 backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-surface-overlay hover:text-surface-fg"
         :class="showMenu ? 'opacity-100' : ''"
-        @click.stop
+        @click.stop="toggleMenu"
       >
         <MoreVertical class="h-4 w-4" />
       </button>
