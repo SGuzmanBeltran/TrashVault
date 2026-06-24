@@ -16,6 +16,7 @@ export interface FileItem {
   createdAt: string
   updatedAt: string
   trashedAt: string | null
+  path?: string
 }
 
 export interface Folder {
@@ -24,6 +25,7 @@ export interface Folder {
   parentId: string | null
   createdAt: string
   trashedAt: string | null
+  path?: string
 }
 
 export interface StorageStats {

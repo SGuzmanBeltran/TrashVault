@@ -133,15 +133,15 @@ folders {
 
 ### Slice 0: Loading & Feedback
 
-- [ ] Error handling — try/catch + notify on file delete, folder delete, folder create, trash ops
-- [ ] Download loading state — disable button + show spinner during fetch+decrypt
-- [ ] Trash item loading — disable restore/delete buttons during operation
-- [ ] App mount skeleton — show full-screen skeleton while checkSession resolves
+- [x] Error handling — try/catch + notify on file delete, folder delete, folder create, trash ops
+- [x] Download loading state — disable button + show spinner during fetch+decrypt
+- [x] Trash item loading — disable restore/delete buttons during operation
+- [x] App mount skeleton — show full-screen skeleton while checkSession resolves
 
 ### Slice 1: Sorting & Search
 
-- [ ] 1a. Sorting — wire `sort` ref in store `allItems`, dropdown UI on Sort button (name/size/date/type, asc/desc)
-- [ ] 1b. Search — wire topbar input to `fileStore.searchQuery`, add mobile search icon
+- [x] 1a. Sorting — wire `sort` ref in store `allItems`, dropdown UI on Sort button (name/size/date/type, asc/desc)
+- [x] 1b. Search — global backend search (`GET /api/search?q=`), debounced, shows all matches with path
 
 ### Slice 2: List View & Bulk Operations
 

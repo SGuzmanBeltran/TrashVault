@@ -7,6 +7,7 @@ import { formatDate } from '@/utils'
 defineProps<{
   folder: FolderType
   selected?: boolean
+  locationPath?: string
 }>()
 
 const emit = defineEmits<{
@@ -34,7 +35,10 @@ const showMenu = ref(false)
         {{ folder.name }}
       </div>
       <div class="mt-0.5 flex items-center gap-2 text-xs text-surface-fg-subtle">
-        <span>{{ formatDate(folder.createdAt) }}</span>
+        <span v-if="locationPath" class="truncate">{{ locationPath }}</span>
+        <template v-else>
+          <span>{{ formatDate(folder.createdAt) }}</span>
+        </template>
       </div>
     </div>
 

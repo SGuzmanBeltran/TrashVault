@@ -25,6 +25,7 @@ import { useNotificationStore } from '@/stores/notification'
 const props = defineProps<{
   file: FileItem
   selected?: boolean
+  locationPath?: string
 }>()
 
 const emit = defineEmits<{
@@ -244,8 +245,14 @@ class="relative flex h-11 w-11 items-center justify-center overflow-hidden round
       </div>
       <div class="mt-1 flex items-center gap-2 text-xs text-surface-fg-subtle">
         <span>{{ formatBytes(file.size) }}</span>
-        <span class="h-0.5 w-0.5 rounded-full bg-surface-fg-subtle" />
-        <span>{{ formatDate(file.createdAt) }}</span>
+        <template v-if="locationPath">
+          <span class="h-0.5 w-0.5 rounded-full bg-surface-fg-subtle" />
+          <span class="truncate">{{ locationPath }}</span>
+        </template>
+        <template v-else>
+          <span class="h-0.5 w-0.5 rounded-full bg-surface-fg-subtle" />
+          <span>{{ formatDate(file.createdAt) }}</span>
+        </template>
       </div>
     </div>
   </div>

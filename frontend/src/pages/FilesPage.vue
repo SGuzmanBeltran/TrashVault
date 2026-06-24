@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import {
   ChevronRight,
   Plus,
@@ -7,6 +7,8 @@ import {
   Grid3X3,
   List,
   SortAsc,
+  SortDesc,
+  Check,
   FolderPlus,
   Home,
   UploadCloud,
@@ -20,7 +22,7 @@ import FileCard from '@/components/FileCard.vue'
 import FolderCard from '@/components/FolderCard.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
-import type { FileViewMode, FileItem } from '@/domain/types'
+import type { FileViewMode, FileItem, SortField } from '@/domain/types'
 
 const fileStore = useFileStore()
 const uploadQueue = useUploadQueue()
@@ -36,9 +38,67 @@ const dragCounter = ref(0)
 const isDragging = computed(() => dragCounter.value > 0)
 const previewFile = ref<FileItem | null>(null)
 const openMenuFileId = ref<string | null>(null)
+const showSortMenu = ref(false)
+const sortMenuRef = ref<HTMLElement | null>(null)
+
+const sortOptions: { field: SortField; label: string }[] = [
+  { field: 'name', label: 'Name' },
+  { field: 'size', label: 'Size' },
+  { field: 'createdAt', label: 'Date' },
+  { field: 'mimeType', label: 'Type' },
+]
+
+const sortLabel = computed(() => {
+  const option = sortOptions.find((o) => o.field === fileStore.sort.field)
+  return option?.label ?? 'Sort'
+})
+
+const isEmptyFolder = computed(
+  () =>
+    !fileStore.isSearchActive &&
+    fileStore.folders.length === 0 &&
+    fileStore.files.length === 0,
+)
+
+const hasNoSearchResults = computed(
+  () =>
+    fileStore.isSearchActive &&
+    !fileStore.isSearching &&
+    fileStore.allItems.folders.length === 0 &&
+    fileStore.allItems.files.length === 0,
+)
+
+const showContentLoading = computed(
+  () => fileStore.isLoading || (fileStore.isSearchActive && fileStore.isSearching),
+)
+
+function sortDirectionLabel(field: SortField): string {
+  const { field: activeField, direction } = fileStore.sort
+  if (field !== activeField) return ''
+
+  if (field === 'name' || field === 'mimeType') {
+    return direction === 'asc' ? 'A → Z' : 'Z → A'
+  }
+  if (field === 'size') {
+    return direction === 'asc' ? 'Smallest first' : 'Largest first'
+  }
+  return direction === 'asc' ? 'Oldest first' : 'Newest first'
+}
+
+function onClickDocument(event: MouseEvent) {
+  if (!sortMenuRef.value) return
+  if (!sortMenuRef.value.contains(event.target as Node)) {
+    showSortMenu.value = false
+  }
+}
 
 onMounted(() => {
   fileStore.loadFolder(null)
+  document.addEventListener('click', onClickDocument)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onClickDocument)
 })
 
 function triggerFileSelect() {
@@ -121,6 +181,11 @@ async function processFolderUpload(entries: { file: File; path: string }[]) {
 }
 
 function handleOpenFolder(id: string) {
+  if (fileStore.isSearchActive) {
+    fileStore.openFolderFromSearch(id)
+    return
+  }
+
   const folder = fileStore.folders.find((f) => f.id === id)
   fileStore.navigateToFolder(id, folder?.name ?? 'Folder')
 }
@@ -341,7 +406,30 @@ async function onDrop(event: DragEvent) {
       </button>
     </div>
 
-    <div class="animate-in animate-stagger-1 flex items-center gap-1.5 text-sm">
+    <div
+      v-if="fileStore.isSearchActive"
+      class="animate-in animate-stagger-1 flex items-center justify-between gap-3 text-sm"
+    >
+      <div>
+        <p class="font-medium text-surface-fg">
+          Search results
+        </p>
+        <p class="mt-0.5 text-surface-fg-muted">
+          Showing matches for "{{ fileStore.searchQuery.trim() }}" across all files and folders
+        </p>
+      </div>
+      <button
+        class="shrink-0 rounded-lg px-2.5 py-1.5 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+        @click="fileStore.clearSearch()"
+      >
+        Clear
+      </button>
+    </div>
+
+    <div
+      v-else
+      class="animate-in animate-stagger-1 flex items-center gap-1.5 text-sm"
+    >
       <button
         v-for="(crumb, index) in fileStore.breadcrumbs"
         :key="crumb.id ?? 'root'"
@@ -376,13 +464,63 @@ async function onDrop(event: DragEvent) {
         </button>
       </div>
 
-      <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg">
-        <SortAsc class="h-4 w-4" />
-        Sort
-      </button>
+      <div ref="sortMenuRef" class="relative">
+        <button
+          class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+          @click.stop="showSortMenu = !showSortMenu"
+        >
+          <component
+            :is="fileStore.sort.direction === 'asc' ? SortAsc : SortDesc"
+            class="h-4 w-4"
+          />
+          {{ sortLabel }}
+        </button>
+
+        <Transition
+          enter-active-class="transition duration-150 ease-out"
+          enter-from-class="scale-95 opacity-0"
+          enter-to-class="scale-100 opacity-100"
+          leave-active-class="transition duration-100 ease-in"
+          leave-from-class="scale-100 opacity-100"
+          leave-to-class="scale-95 opacity-0"
+        >
+          <div
+            v-if="showSortMenu"
+            class="absolute right-0 top-full z-30 mt-1.5 w-52 overflow-hidden rounded-xl border border-surface-border bg-surface-raised shadow-xl shadow-black/30"
+          >
+            <div class="border-b border-surface-border px-3 py-2.5">
+              <div class="text-sm font-medium text-surface-fg">Sort by</div>
+              <div class="text-xs text-surface-fg-subtle">Click again to reverse order</div>
+            </div>
+            <div class="p-1">
+              <button
+                v-for="option in sortOptions"
+                :key="option.field"
+                class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-surface-overlay"
+                :class="fileStore.sort.field === option.field ? 'text-surface-fg' : 'text-surface-fg-muted'"
+                @click.stop="fileStore.setSort(option.field)"
+              >
+                <span class="flex items-center gap-2">
+                  <Check
+                    class="h-4 w-4"
+                    :class="fileStore.sort.field === option.field ? 'opacity-100' : 'opacity-0'"
+                  />
+                  {{ option.label }}
+                </span>
+                <span
+                  v-if="fileStore.sort.field === option.field"
+                  class="text-xs text-surface-fg-subtle"
+                >
+                  {{ sortDirectionLabel(option.field) }}
+                </span>
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </div>
     </div>
 
-    <div v-if="fileStore.isLoading" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-if="showContentLoading" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <LoadingSkeleton variant="card" :count="6" />
     </div>
 
@@ -404,6 +542,7 @@ async function onDrop(event: DragEvent) {
             <FolderCard
               :folder="folder"
               :selected="fileStore.selectedFolders.has(folder.id)"
+              :location-path="fileStore.isSearchActive ? folder.path : undefined"
               @open="handleOpenFolder"
               @select="fileStore.toggleFolderSelection"
               @delete="fileStore.deleteFolder"
@@ -429,6 +568,7 @@ async function onDrop(event: DragEvent) {
             <FileCard
               :file="file"
               :selected="fileStore.selectedFiles.has(file.id)"
+              :location-path="fileStore.isSearchActive ? file.path : undefined"
               @select="fileStore.toggleFileSelection"
               @delete="fileStore.deleteFile"
               @preview="handlePreviewFile"
@@ -439,7 +579,20 @@ async function onDrop(event: DragEvent) {
       </div>
 
       <div
-        v-if="fileStore.allItems.folders.length === 0 && fileStore.allItems.files.length === 0"
+        v-if="hasNoSearchResults"
+        class="flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-border py-16"
+      >
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-overlay">
+          <Upload class="h-5 w-5 text-surface-fg-subtle" />
+        </div>
+        <h3 class="mt-4 text-sm font-medium text-surface-fg">No results found</h3>
+        <p class="mt-1 text-sm text-surface-fg-subtle">
+          Nothing matches "{{ fileStore.searchQuery.trim() }}"
+        </p>
+      </div>
+
+      <div
+        v-else-if="isEmptyFolder"
         class="flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-border py-16"
       >
         <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-overlay">

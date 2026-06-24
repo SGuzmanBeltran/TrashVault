@@ -185,7 +185,7 @@ See [TODO.md](./TODO.md) for the full backlog. Highlights:
 - [x] Client-side zero-trust encryption
 - [x] Image/video/PDF previews
 - [x] Mobile responsive UI
-- [ ] Loading & feedback improvements (spinners, error handling, skeletons)
+- [x] Loading & feedback improvements (spinners, error handling, skeletons)
 - [ ] Sorting & search
 - [ ] List view & bulk operations (multi-select, move, delete)
 - [ ] Keyboard shortcuts

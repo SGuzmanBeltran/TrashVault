@@ -1,13 +1,26 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Bell, ChevronDown, LogOut, User, Menu } from 'lucide-vue-next'
+import { Search, Bell, ChevronDown, LogOut, User, Menu, X } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { useFileStore } from '@/stores/files'
 import AccentPicker from '@/components/AccentPicker.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const fileStore = useFileStore()
 const showUserMenu = ref(false)
+const showMobileSearch = ref(false)
+
+const searchInput = computed({
+  get: () => fileStore.searchQuery,
+  set: (value: string) => {
+    fileStore.setSearchQuery(value)
+    if (value.trim()) {
+      router.push({ name: 'files' })
+    }
+  },
+})
 
 const emit = defineEmits<{
   toggleSidebar: []
@@ -17,6 +30,11 @@ async function handleSignOut() {
   await authStore.logout()
   showUserMenu.value = false
   router.push('/login')
+}
+
+function closeMobileSearch() {
+  showMobileSearch.value = false
+  fileStore.clearSearch()
 }
 </script>
 
@@ -29,16 +47,47 @@ async function handleSignOut() {
       <Menu class="h-5 w-5" />
     </button>
 
-    <div class="relative hidden w-80 sm:block">
+    <div
+      v-if="showMobileSearch"
+      class="flex min-w-0 flex-1 items-center gap-2 sm:hidden"
+    >
+      <Search class="h-4 w-4 shrink-0 text-surface-fg-subtle" />
+      <input
+        v-model="searchInput"
+        type="search"
+        placeholder="Search files and folders..."
+        class="min-w-0 flex-1 bg-transparent text-sm text-surface-fg placeholder-surface-fg-subtle outline-none"
+        autofocus
+      />
+      <button
+        class="rounded-lg p-1.5 text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+        @click="closeMobileSearch"
+      >
+        <X class="h-4 w-4" />
+      </button>
+    </div>
+
+    <div v-else class="relative hidden w-80 sm:block">
       <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-fg-subtle" />
       <input
-        type="text"
+        v-model="searchInput"
+        type="search"
         placeholder="Search files and folders..."
         class="w-full rounded-lg border border-surface-border bg-surface py-2 pl-9 pr-4 text-sm text-surface-fg placeholder-surface-fg-subtle outline-none transition-colors focus:border-accent/40 focus:ring-1 focus:ring-accent/20"
       />
     </div>
 
-    <div class="flex items-center gap-2 lg:gap-3">
+    <div
+      class="flex items-center gap-2 lg:gap-3"
+      :class="showMobileSearch ? 'hidden sm:flex' : ''"
+    >
+      <button
+        class="rounded-lg p-2 text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg sm:hidden"
+        @click="showMobileSearch = true"
+      >
+        <Search class="h-4 w-4" />
+      </button>
+
       <AccentPicker />
 
       <button class="relative rounded-lg p-2 text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg">

@@ -75,3 +75,7 @@ export interface EncryptionPort {
     kdfParams: string
   }): Promise<EncryptionKeyData>
 }
+
+export interface SearchPort {
+  search(query: string): Promise<{ files: FileItem[]; folders: Folder[] }>
+}
