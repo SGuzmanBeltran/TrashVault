@@ -81,6 +81,24 @@ const hasVisibleItems = computed(
     fileStore.allItems.files.length > 0,
 )
 
+const folderGridClass = computed(() =>
+  viewMode.value === 'list'
+    ? 'space-y-1'
+    : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5',
+)
+
+const fileGridClass = computed(() =>
+  viewMode.value === 'list'
+    ? 'space-y-1'
+    : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5',
+)
+
+const contentGridClass = computed(() =>
+  viewMode.value === 'list'
+    ? 'space-y-1'
+    : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4',
+)
+
 function setViewMode(mode: FileViewMode) {
   viewMode.value = mode
   saveFileViewMode(mode)
@@ -536,7 +554,7 @@ async function onDrop(event: DragEvent) {
 
     <div
       v-if="showContentLoading"
-      :class="viewMode === 'list' ? 'space-y-1' : 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'"
+      :class="viewMode === 'list' ? 'space-y-1' : contentGridClass"
     >
       <LoadingSkeleton :variant="viewMode === 'list' ? 'row' : 'card'" :count="6" />
     </div>
@@ -561,7 +579,7 @@ async function onDrop(event: DragEvent) {
           Folders
         </h3>
         <div
-          :class="viewMode === 'list' ? 'space-y-1' : 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'"
+          :class="folderGridClass"
         >
           <div
             v-for="(folder, i) in fileStore.allItems.folders"
@@ -599,7 +617,7 @@ async function onDrop(event: DragEvent) {
           Files
         </h3>
         <div
-          :class="viewMode === 'list' ? 'space-y-1' : 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'"
+          :class="fileGridClass"
         >
           <div
             v-for="(file, i) in fileStore.allItems.files"

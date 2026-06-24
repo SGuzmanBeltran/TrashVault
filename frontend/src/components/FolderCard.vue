@@ -21,30 +21,29 @@ const showMenu = ref(false)
 
 <template>
   <div
-    class="group relative flex items-center gap-3.5 rounded-xl border border-surface-border bg-surface-raised p-4 transition-all duration-200 hover:border-accent/20 hover:shadow-lg hover:shadow-black/10 cursor-pointer"
-    :class="selected ? 'border-accent/40 ring-1 ring-accent/20' : ''"
+    class="group relative flex aspect-square cursor-pointer flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-raised transition-all duration-200 hover:border-accent/20 hover:shadow-lg hover:shadow-black/10"
+    :class="selected ? 'border-accent/40 ring-2 ring-accent/25' : ''"
     @dblclick="emit('open', folder.id)"
     @click="emit('select', folder.id)"
   >
-    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-      <Folder class="h-5 w-5 text-accent" />
+    <div class="flex flex-1 items-center justify-center bg-accent/10">
+      <Folder class="h-12 w-12 text-accent" />
     </div>
 
-    <div class="min-w-0 flex-1">
+    <div class="border-t border-surface-border bg-surface-raised px-3 py-2.5">
       <div class="truncate text-sm font-medium text-surface-fg">
         {{ folder.name }}
       </div>
-      <div class="mt-0.5 flex items-center gap-2 text-xs text-surface-fg-subtle">
-        <span v-if="locationPath" class="truncate">{{ locationPath }}</span>
-        <template v-else>
-          <span>{{ formatDate(folder.createdAt) }}</span>
-        </template>
+      <div class="mt-0.5 truncate text-xs text-surface-fg-subtle">
+        <span v-if="locationPath">{{ locationPath }}</span>
+        <span v-else>{{ formatDate(folder.createdAt) }}</span>
       </div>
     </div>
 
-    <div class="relative">
+    <div class="absolute right-2 top-2">
       <button
-        class="rounded-md p-1 text-surface-fg-subtle opacity-0 transition-all group-hover:opacity-100 hover:bg-surface-overlay hover:text-surface-fg"
+        class="rounded-lg bg-surface-raised/80 p-1.5 text-surface-fg-muted opacity-0 backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-surface-overlay hover:text-surface-fg"
+        :class="showMenu ? 'opacity-100' : ''"
         @click.stop="showMenu = !showMenu"
       >
         <MoreVertical class="h-4 w-4" />

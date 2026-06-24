@@ -36,14 +36,14 @@ defineProps<{
     <div
       v-for="i in (count ?? 6)"
       :key="i"
-      class="flex flex-col rounded-xl border border-surface-border bg-surface-raised p-4"
+      class="flex aspect-square flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-raised"
     >
-      <div class="flex items-start justify-between">
-        <div class="skeleton h-11 w-11 rounded-lg" />
+      <div class="flex flex-1 items-center justify-center">
+        <div class="skeleton h-12 w-12 rounded-lg" />
       </div>
-      <div class="mt-3.5">
+      <div class="space-y-2 border-t border-surface-border p-3">
         <div class="skeleton h-4 w-3/4" />
-        <div class="skeleton mt-2 h-3 w-1/2" />
+        <div class="skeleton h-3 w-1/2" />
       </div>
     </div>
   </template>
