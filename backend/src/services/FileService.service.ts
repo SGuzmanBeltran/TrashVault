@@ -1,9 +1,10 @@
 import { FileEntity, FileRepositoryPort } from '../ports/repository/FileRepository.port';
 import { FolderRepositoryPort } from '../ports/repository/FolderRepository.port';
-import { wrapRepositoryError, wrapStorageError, NotFoundError, ServiceError, StorageError } from '../errors';
+import { wrapRepositoryError, wrapStorageError, NotFoundError, ServiceError, StorageError, ConflictError } from '../errors';
 
 import { StoragePort } from '../ports/storage/Storage.port';
 import { ThumbnailService } from './ThumbnailService.service';
+import { sanitizeItemName } from '../lib/itemName';
 
 export interface CreateFileParams {
   id: string;
@@ -117,6 +118,35 @@ export class FileService {
       }
 
       const updated = await this.fileRepository.updateFolderId(id, userId, folderId);
+      if (!updated) {
+        throw new NotFoundError('File not found');
+      }
+
+      return updated;
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
+      throw wrapRepositoryError(error);
+    }
+  }
+
+  async renameFile(id: string, userId: string, name: string): Promise<FileEntity> {
+    try {
+      const sanitized = sanitizeItemName(name);
+      const file = await this.fileRepository.findById(id, userId);
+      if (!file || file.trashedAt) {
+        throw new NotFoundError('File not found');
+      }
+
+      if (sanitized === file.name) {
+        return file;
+      }
+
+      const siblings = await this.fileRepository.findByUserId(userId, file.folderId);
+      if (siblings.some((item) => item.id !== id && item.name === sanitized)) {
+        throw new ConflictError('A file with this name already exists in this folder');
+      }
+
+      const updated = await this.fileRepository.updateName(id, userId, sanitized);
       if (!updated) {
         throw new NotFoundError('File not found');
       }

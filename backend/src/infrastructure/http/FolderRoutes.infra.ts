@@ -38,13 +38,21 @@ export const folderRoutes = new Elysia({ prefix: '/folders' })
   }, {
     auth: true,
   })
-  .patch('/:id', async ({ user, params, body }) => {
+  .patch('/:id', async ({ user, params, body, set }) => {
     const folderService = createFolderService();
-    return folderService.moveFolder(params.id, user!.id, body.parentId);
+    if (body.name !== undefined) {
+      return folderService.renameFolder(params.id, user!.id, body.name);
+    }
+    if (body.parentId !== undefined) {
+      return folderService.moveFolder(params.id, user!.id, body.parentId);
+    }
+    set.status = 400;
+    return { error: 'No updates provided' };
   }, {
     auth: true,
     body: t.Object({
-      parentId: t.Union([t.String(), t.Null()]),
+      parentId: t.Optional(t.Union([t.String(), t.Null()])),
+      name: t.Optional(t.String()),
     }),
   })
   .delete('/:id', async ({ user, params }) => {

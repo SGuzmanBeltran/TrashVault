@@ -2,7 +2,8 @@ import { FolderEntity, FolderRepositoryPort } from '../ports/repository/FolderRe
 
 import { FileRepositoryPort } from '../ports/repository/FileRepository.port';
 import { StoragePort } from '../ports/storage/Storage.port';
-import { wrapRepositoryError, NotFoundError, ServiceError } from '../errors';
+import { wrapRepositoryError, NotFoundError, ServiceError, ConflictError } from '../errors';
+import { sanitizeItemName } from '../lib/itemName';
 import { zipSync } from 'fflate';
 
 export interface CreateFolderParams {
@@ -103,6 +104,35 @@ export class FolderService {
       }
 
       const updated = await this.folderRepository.updateParentId(id, userId, parentId);
+      if (!updated) {
+        throw new NotFoundError('Folder not found');
+      }
+
+      return updated;
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
+      throw wrapRepositoryError(error);
+    }
+  }
+
+  async renameFolder(id: string, userId: string, name: string): Promise<FolderEntity> {
+    try {
+      const sanitized = sanitizeItemName(name);
+      const folder = await this.folderRepository.findById(id, userId);
+      if (!folder || folder.trashedAt) {
+        throw new NotFoundError('Folder not found');
+      }
+
+      if (sanitized === folder.name) {
+        return folder;
+      }
+
+      const siblings = await this.folderRepository.findByUserId(userId, folder.parentId);
+      if (siblings.some((item) => item.id !== id && item.name === sanitized)) {
+        throw new ConflictError('A folder with this name already exists here');
+      }
+
+      const updated = await this.folderRepository.updateName(id, userId, sanitized);
       if (!updated) {
         throw new NotFoundError('Folder not found');
       }

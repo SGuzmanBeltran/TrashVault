@@ -15,6 +15,7 @@ export interface FolderRepositoryPort {
   findByUserId(userId: string, parentId?: string | null): Promise<FolderEntity[]>;
   delete(id: string, userId: string): Promise<void>;
   updateParentId(id: string, userId: string, parentId: string | null): Promise<FolderEntity | null>;
+  updateName(id: string, userId: string, name: string): Promise<FolderEntity | null>;
   moveToTrash(id: string, userId: string): Promise<void>;
   restoreFromTrash(id: string, userId: string): Promise<void>;
   findTrashedByUserId(userId: string): Promise<FolderEntity[]>;

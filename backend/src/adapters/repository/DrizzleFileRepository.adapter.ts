@@ -44,6 +44,16 @@ export class DrizzleFileRepositoryAdapter implements FileRepositoryPort {
     return result[0] || null;
   }
 
+  async updateName(id: string, userId: string, name: string): Promise<FileEntity | null> {
+    const result = await db.update(files)
+      .set({ name })
+      .where(
+        and(eq(files.id, id), eq(files.userId, userId), isNull(files.trashedAt)),
+      )
+      .returning();
+    return result[0] || null;
+  }
+
   async moveToTrash(id: string, userId: string): Promise<void> {
     await db.update(files).set({ trashedAt: new Date() }).where(
       and(eq(files.id, id), eq(files.userId, userId))
