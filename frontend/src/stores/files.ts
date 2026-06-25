@@ -341,12 +341,26 @@ export const useFileStore = defineStore('files', () => {
     }
   }
 
-  function selectItem(kind: SelectableKind, id: string, shiftKey: boolean) {
+  function selectSingleItem(kind: SelectableKind, id: string) {
+    selectedFiles.value.clear()
+    selectedFolders.value.clear()
+    if (kind === 'folder') selectedFolders.value.add(id)
+    else selectedFiles.value.add(id)
+  }
+
+  function selectItem(
+    kind: SelectableKind,
+    id: string,
+    options: { shiftKey?: boolean; modifierKey?: boolean } = {},
+  ) {
+    const { shiftKey = false, modifierKey = false } = options
     const items = flatSelectableItems.value
     const index = items.findIndex((item) => item.kind === kind && item.id === id)
     if (index === -1) return
 
     if (shiftKey && lastSelectIndex.value !== null) {
+      selectedFiles.value.clear()
+      selectedFolders.value.clear()
       const start = Math.min(lastSelectIndex.value, index)
       const end = Math.max(lastSelectIndex.value, index)
       for (let i = start; i <= end; i++) {
@@ -357,8 +371,14 @@ export const useFileStore = defineStore('files', () => {
       return
     }
 
-    if (kind === 'folder') toggleFolderSelection(id)
-    else toggleFileSelection(id)
+    if (modifierKey) {
+      if (kind === 'folder') toggleFolderSelection(id)
+      else toggleFileSelection(id)
+      lastSelectIndex.value = index
+      return
+    }
+
+    selectSingleItem(kind, id)
     lastSelectIndex.value = index
   }
 

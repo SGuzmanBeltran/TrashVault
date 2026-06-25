@@ -253,7 +253,10 @@ function handlePreviewFile(file: FileItem) {
 }
 
 function handleItemSelect(kind: 'file' | 'folder', id: string, event: MouseEvent) {
-  fileStore.selectItem(kind, id, event.shiftKey)
+  fileStore.selectItem(kind, id, {
+    shiftKey: event.shiftKey,
+    modifierKey: event.ctrlKey || event.metaKey,
+  })
 }
 
 async function openMoveModal() {
