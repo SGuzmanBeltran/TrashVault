@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Folder, MoreVertical, Trash2, Download, Loader2 } from 'lucide-vue-next'
+import { Folder, MoreVertical, Trash2, Pencil, Download, Loader2 } from 'lucide-vue-next'
 import { ref } from 'vue'
 import type { Folder as FolderType } from '@/domain/types'
 import { formatDate } from '@/utils'
@@ -19,6 +19,7 @@ const emit = defineEmits<{
   open: [id: string]
   select: [id: string, event: MouseEvent]
   delete: [id: string]
+  rename: [folder: FolderType]
 }>()
 
 const folderService = useFolderService()
@@ -120,6 +121,13 @@ async function downloadFolder() {
               <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
               <Download v-else class="h-4 w-4" />
               Download
+            </button>
+            <button
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+              @click.stop="emit('rename', folder); showMenu = false"
+            >
+              <Pencil class="h-4 w-4" />
+              Rename
             </button>
             <button
               class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"

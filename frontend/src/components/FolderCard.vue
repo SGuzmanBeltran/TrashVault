@@ -19,6 +19,7 @@ const emit = defineEmits<{
   open: [id: string]
   select: [id: string, event: MouseEvent]
   delete: [id: string]
+  rename: [folder: FolderType]
 }>()
 
 const folderService = useFolderService()
@@ -115,7 +116,7 @@ async function downloadFolder() {
             </button>
             <button
               class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
-              @click.stop="showMenu = false"
+              @click.stop="emit('rename', folder); showMenu = false"
             >
               <Pencil class="h-4 w-4" />
               Rename

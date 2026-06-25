@@ -10,6 +10,7 @@ export interface FilePort {
   getFile(id: string): Promise<FileItem>
   deleteFile(id: string): Promise<void>
   moveFile(id: string, folderId: string | null): Promise<FileItem>
+  renameFile(id: string, name: string): Promise<FileItem>
   downloadFile(id: string): Promise<{ blobUrl: string; filename: string; mimeType: string }>
   getThumbnailUrl(id: string): Promise<string | null>
   uploadFile(file: File, folderId: string | null): Promise<FileItem>
@@ -26,6 +27,7 @@ export interface FolderPort {
   createFolder(name: string, parentId: string | null): Promise<Folder>
   deleteFolder(id: string): Promise<void>
   moveFolder(id: string, parentId: string | null): Promise<Folder>
+  renameFolder(id: string, name: string): Promise<Folder>
   downloadFolder(id: string): Promise<{ blobUrl: string; filename: string }>
 }
 

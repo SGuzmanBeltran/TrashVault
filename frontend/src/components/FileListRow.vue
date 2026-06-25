@@ -9,6 +9,7 @@ import {
   Database,
   File,
   MoreVertical,
+  Pencil,
   Download,
   Trash2,
   Eye,
@@ -35,6 +36,7 @@ const emit = defineEmits<{
   select: [id: string, event: MouseEvent]
   delete: [id: string]
   preview: [file: FileItem]
+  rename: [file: FileItem]
   menuChange: [open: boolean]
 }>()
 
@@ -236,6 +238,13 @@ function onDragEnd() {
               <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
               <Download v-else class="h-4 w-4" />
               {{ isDownloading ? 'Decrypting...' : 'Download' }}
+            </button>
+            <button
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+              @click.stop="emit('rename', file); showMenu = false; emit('menuChange', false)"
+            >
+              <Pencil class="h-4 w-4" />
+              Rename
             </button>
             <button
               class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"

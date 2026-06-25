@@ -21,6 +21,7 @@ const isMac = navigator.platform.toUpperCase().includes('MAC')
 export interface FileKeyboardShortcutHandlers {
   onDelete: () => boolean | void
   onEnter: () => boolean | void
+  onRename: () => boolean | void
   onEscape: () => void
   onSelectAll: () => void
   onUpload: () => void
@@ -68,6 +69,11 @@ export function useFileKeyboardShortcuts(handlers: FileKeyboardShortcutHandlers)
 
     if (event.key === 'Enter') {
       if (handlers.onEnter()) event.preventDefault()
+      return
+    }
+
+    if (event.key === 'F2') {
+      if (handlers.onRename()) event.preventDefault()
     }
   }
 

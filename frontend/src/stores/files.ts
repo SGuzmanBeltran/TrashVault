@@ -285,6 +285,46 @@ export const useFileStore = defineStore('files', () => {
     }
   }
 
+  async function renameFile(id: string, name: string) {
+    try {
+      const updated = await fileService.renameFile(id, name)
+      files.value = files.value.map((file) => (file.id === id ? updated : file))
+      if (searchResults.value) {
+        searchResults.value.files = searchResults.value.files.map((file) =>
+          file.id === id ? { ...file, name: updated.name } : file,
+        )
+      }
+      notify.success('File renamed')
+      return updated
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to rename file'
+      notify.error(message)
+      throw error
+    }
+  }
+
+  async function renameFolder(id: string, name: string) {
+    try {
+      const updated = await folderService.renameFolder(id, name)
+      folders.value = folders.value.map((folder) => (folder.id === id ? updated : folder))
+      if (searchResults.value) {
+        searchResults.value.folders = searchResults.value.folders.map((folder) =>
+          folder.id === id ? { ...folder, name: updated.name } : folder,
+        )
+      }
+      const crumb = breadcrumbs.value.find((b) => b.id === id)
+      if (crumb) {
+        crumb.name = updated.name
+      }
+      notify.success('Folder renamed')
+      return updated
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to rename folder'
+      notify.error(message)
+      throw error
+    }
+  }
+
   function toggleFileSelection(id: string) {
     if (selectedFiles.value.has(id)) {
       selectedFiles.value.delete(id)
@@ -473,6 +513,8 @@ export const useFileStore = defineStore('files', () => {
     uploadFile,
     deleteFile,
     deleteFolder,
+    renameFile,
+    renameFolder,
     toggleFileSelection,
     toggleFolderSelection,
     selectItem,

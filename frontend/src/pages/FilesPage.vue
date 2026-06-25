@@ -25,10 +25,11 @@ import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
 import BulkActionBar from '@/components/BulkActionBar.vue'
 import MoveToFolderModal from '@/components/MoveToFolderModal.vue'
+import RenameModal from '@/components/RenameModal.vue'
 import BreadcrumbNav from '@/components/BreadcrumbNav.vue'
 import { loadFileViewMode, saveFileViewMode } from '@/lib/file-view-mode'
 import { useFileKeyboardShortcuts, isSelectAllShortcut, isTextEditingTarget } from '@/composables/useFileKeyboardShortcuts'
-import type { FileViewMode, FileItem, SortField } from '@/domain/types'
+import type { FileViewMode, FileItem, Folder, SortField } from '@/domain/types'
 
 const fileStore = useFileStore()
 const uploadQueue = useUploadQueue()
@@ -49,6 +50,8 @@ const sortMenuPanelRef = ref<HTMLElement | null>(null)
 const sortMenuPosition = ref({ top: 0, right: 0 })
 const showMoveModal = ref(false)
 const moveExcludeFolderIds = ref<string[]>([])
+const renameTarget = ref<{ kind: 'file' | 'folder'; id: string; name: string } | null>(null)
+const isRenaming = ref(false)
 const filesRegionRef = ref<HTMLElement | null>(null)
 
 const sortOptions: { field: SortField; label: string }[] = [
@@ -294,7 +297,66 @@ function handleKeyboardEnter() {
   return false
 }
 
+function openRenameFile(file: FileItem) {
+  renameTarget.value = { kind: 'file', id: file.id, name: file.name }
+}
+
+function openRenameFolder(folder: Folder) {
+  renameTarget.value = { kind: 'folder', id: folder.id, name: folder.name }
+}
+
+function closeRenameModal() {
+  renameTarget.value = null
+}
+
+function handleKeyboardRename() {
+  if (renameTarget.value || fileStore.isBulkOperating) return false
+
+  const fileIds = fileStore.selectedFileIds
+  const folderIds = fileStore.selectedFolderIds
+  if (fileIds.length + folderIds.length !== 1) return false
+
+  if (fileIds.length === 1) {
+    const file = fileStore.allItems.files.find((f) => f.id === fileIds[0])
+    if (file) {
+      openRenameFile(file)
+      return true
+    }
+    return false
+  }
+
+  const folder = fileStore.allItems.folders.find((f) => f.id === folderIds[0])
+  if (folder) {
+    openRenameFolder(folder)
+    return true
+  }
+  return false
+}
+
+async function handleRenameConfirm(name: string) {
+  if (!renameTarget.value) return
+
+  isRenaming.value = true
+  try {
+    const target = renameTarget.value
+    if (target.kind === 'file') {
+      await fileStore.renameFile(target.id, name)
+    } else {
+      await fileStore.renameFolder(target.id, name)
+    }
+    closeRenameModal()
+  } catch {
+    // Store shows error notification
+  } finally {
+    isRenaming.value = false
+  }
+}
+
 function handleKeyboardEscape() {
+  if (renameTarget.value) {
+    closeRenameModal()
+    return
+  }
   if (previewFile.value) {
     previewFile.value = null
     return
@@ -344,10 +406,11 @@ function onFilesRegionKeydown(event: KeyboardEvent) {
 useFileKeyboardShortcuts({
   onDelete: handleKeyboardDelete,
   onEnter: handleKeyboardEnter,
+  onRename: handleKeyboardRename,
   onEscape: handleKeyboardEscape,
   onSelectAll: handleKeyboardSelectAll,
   onUpload: triggerFileSelect,
-  isDisabled: () => fileStore.isBulkOperating,
+  isDisabled: () => fileStore.isBulkOperating || !!renameTarget.value,
 })
 
 async function handleCreateFolder() {
@@ -392,6 +455,15 @@ async function onDrop(event: DragEvent) {
     :exclude-folder-ids="moveExcludeFolderIds"
     @close="showMoveModal = false"
     @confirm="handleMoveConfirm"
+  />
+
+  <RenameModal
+    v-if="renameTarget"
+    :name="renameTarget.name"
+    :item-label="renameTarget.kind"
+    :is-loading="isRenaming"
+    @close="closeRenameModal"
+    @confirm="handleRenameConfirm"
   />
 
   <Transition
@@ -687,6 +759,7 @@ async function onDrop(event: DragEvent) {
               @open="handleOpenFolder"
               @select="(id, event) => handleItemSelect('folder', id, event)"
               @delete="fileStore.deleteFolder"
+              @rename="openRenameFolder"
             />
             <FolderCard
               v-else
@@ -696,6 +769,7 @@ async function onDrop(event: DragEvent) {
               @open="handleOpenFolder"
               @select="(id, event) => handleItemSelect('folder', id, event)"
               @delete="fileStore.deleteFolder"
+              @rename="openRenameFolder"
             />
           </div>
         </div>
@@ -728,6 +802,7 @@ async function onDrop(event: DragEvent) {
               @select="(id, event) => handleItemSelect('file', id, event)"
               @delete="fileStore.deleteFile"
               @preview="handlePreviewFile"
+              @rename="openRenameFile"
               @menu-change="(open) => openMenuFileId = open ? file.id : null"
             />
             <FileCard
@@ -738,6 +813,7 @@ async function onDrop(event: DragEvent) {
               @select="(id, event) => handleItemSelect('file', id, event)"
               @delete="fileStore.deleteFile"
               @preview="handlePreviewFile"
+              @rename="openRenameFile"
               @menu-change="(open) => openMenuFileId = open ? file.id : null"
             />
           </div>

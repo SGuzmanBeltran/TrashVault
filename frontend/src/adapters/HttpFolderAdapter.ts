@@ -62,6 +62,14 @@ export class HttpFolderAdapter implements FolderPort {
     return mapFolder(item)
   }
 
+  async renameFolder(id: string, name: string): Promise<Folder> {
+    const item = await apiFetchJSON<BackendFolder>(`/folders/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    })
+    return mapFolder(item)
+  }
+
   async downloadFolder(id: string): Promise<{ blobUrl: string; filename: string }> {
     const vaultStore = useVaultStore()
     if (!vaultStore.dek) throw new Error('Vault is locked')

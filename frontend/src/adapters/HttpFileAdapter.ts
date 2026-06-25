@@ -56,6 +56,14 @@ export class HttpFileAdapter implements FilePort {
     return mapFile(item)
   }
 
+  async renameFile(id: string, name: string): Promise<FileItem> {
+    const item = await apiFetchJSON<BackendFileItem>(`/files/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    })
+    return mapFile(item)
+  }
+
   async downloadFile(id: string): Promise<{ blobUrl: string; filename: string; mimeType: string }> {
     const meta = await apiFetch<BackendFileItem>(`/files/${id}`)
     const vaultStore = useVaultStore()
