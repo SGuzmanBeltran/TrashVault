@@ -1,7 +1,10 @@
 import { ref, computed } from 'vue'
 import { useFileService } from '@/services'
 import { useFileStore } from '@/stores/files'
+import { useUploadConflict, type UploadConflictAction } from '@/composables/useUploadConflict'
+import { uniqueFileName } from '@/lib/unique-file-name'
 import type { FileItem } from '@/domain/types'
+import type { UploadOptions } from '@/ports'
 
 interface UploadItem {
   id: string
@@ -13,12 +16,18 @@ interface UploadItem {
   aborter?: AbortController
 }
 
+interface UploadEntry {
+  file: File
+  folderId: string | null
+}
+
 const uploads = ref<UploadItem[]>([])
 let idCounter = 0
 
 export function useUploadQueue() {
   const fileService = useFileService()
   const fileStore = useFileStore()
+  const conflict = useUploadConflict()
 
   const activeCount = computed(() =>
     uploads.value.filter((u) => u.status === 'uploading').length,
@@ -26,7 +35,27 @@ export function useUploadQueue() {
 
   const hasUploads = computed(() => uploads.value.length > 0)
 
-  function addUpload(file: File, folderId?: string | null): string {
+  async function getFolderFiles(
+    folderId: string | null,
+    cache: Map<string | null, FileItem[]>,
+  ): Promise<FileItem[]> {
+    if (!cache.has(folderId)) {
+      if (folderId === fileStore.currentFolderId && !fileStore.isSearchActive) {
+        cache.set(folderId, [...fileStore.files])
+      } else {
+        cache.set(folderId, await fileService.listFiles(folderId))
+      }
+    }
+    return cache.get(folderId)!
+  }
+
+  function startUpload(
+    file: File,
+    folderId: string | null,
+    options?: UploadOptions,
+    cache?: Map<string | null, FileItem[]>,
+    replaceExisting?: FileItem,
+  ): string {
     const id = `upload-${++idCounter}`
     const aborter = new AbortController()
 
@@ -41,13 +70,13 @@ export function useUploadQueue() {
     uploads.value.push(item)
 
     fileService
-      .uploadFileWithProgress(file, folderId ?? fileStore.currentFolderId, {
+      .uploadFileWithProgress(file, folderId, {
         onProgress: (progress) => {
           const found = uploads.value.find((u) => u.id === id)
           if (found) found.progress = progress
         },
         signal: aborter.signal,
-      })
+      }, options)
       .then((result) => {
         const found = uploads.value.find((u) => u.id === id)
         if (found) {
@@ -55,6 +84,19 @@ export function useUploadQueue() {
           found.result = result
           found.progress = 100
         }
+
+        if (cache) {
+          const list = cache.get(folderId)
+          if (list) {
+            if (replaceExisting) {
+              const idx = list.findIndex((f) => f.id === replaceExisting.id)
+              if (idx >= 0) list[idx] = result
+            } else {
+              list.push(result)
+            }
+          }
+        }
+
         fileStore.loadFolder(fileStore.currentFolderId)
         setTimeout(() => {
           uploads.value = uploads.value.filter((u) => u.id !== id)
@@ -74,6 +116,88 @@ export function useUploadQueue() {
     return id
   }
 
+  async function addUploads(entries: UploadEntry[]) {
+    if (entries.length === 0) return
+
+    const cache = new Map<string | null, FileItem[]>()
+    let batchPolicy: UploadConflictAction | null = null
+
+    const conflictIndices: number[] = []
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i]!
+      const folderFiles = await getFolderFiles(entry.folderId, cache)
+      if (folderFiles.some((f) => f.name === entry.file.name)) {
+        conflictIndices.push(i)
+      }
+    }
+
+    let conflictHandled = 0
+
+    for (const entry of entries) {
+      let { file, folderId } = entry
+      const folderFiles = await getFolderFiles(folderId, cache)
+      const existing = folderFiles.find((f) => f.name === file.name)
+
+      if (existing) {
+        let action: UploadConflictAction
+        if (batchPolicy) {
+          action = batchPolicy
+        } else {
+          const result = await conflict.askConflict({
+            fileName: file.name,
+            remainingCount: conflictIndices.length - conflictHandled - 1,
+          })
+          action = result.action
+          if (result.applyToAll) batchPolicy = action
+        }
+        conflictHandled++
+
+        if (action === 'skip') continue
+
+        if (action === 'keepBoth') {
+          const names = folderFiles.map((f) => f.name)
+          const newName = uniqueFileName(file.name, names)
+          file = new File([file], newName, { type: file.type, lastModified: file.lastModified })
+          folderFiles.push({
+            id: `pending-${file.name}`,
+            name: newName,
+            mimeType: file.type,
+            size: file.size,
+            folderId,
+            thumbnailKey: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            trashedAt: null,
+          })
+          startUpload(file, folderId, undefined, cache)
+          continue
+        }
+
+        if (action === 'replace') {
+          startUpload(file, folderId, { replaceFileId: existing.id }, cache, existing)
+          continue
+        }
+      }
+
+      startUpload(file, folderId, undefined, cache)
+      folderFiles.push({
+        id: `pending-${file.name}-${Date.now()}`,
+        name: file.name,
+        mimeType: file.type,
+        size: file.size,
+        folderId,
+        thumbnailKey: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        trashedAt: null,
+      })
+    }
+  }
+
+  async function addUpload(file: File, folderId?: string | null) {
+    await addUploads([{ file, folderId: folderId ?? fileStore.currentFolderId }])
+  }
+
   function cancelUpload(id: string) {
     const item = uploads.value.find((u) => u.id === id)
     if (item && item.status === 'uploading') {
@@ -88,7 +212,7 @@ export function useUploadQueue() {
     const item = uploads.value.find((u) => u.id === id)
     if (item && item.status === 'failed') {
       uploads.value = uploads.value.filter((u) => u.id !== id)
-      addUpload(item.file)
+      void addUpload(item.file)
     }
   }
 
@@ -105,6 +229,7 @@ export function useUploadQueue() {
     activeCount,
     hasUploads,
     addUpload,
+    addUploads,
     cancelUpload,
     retryUpload,
     clearCompleted,

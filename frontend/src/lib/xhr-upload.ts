@@ -14,11 +14,16 @@ interface UploadProgressCallbacks {
   signal?: AbortSignal
 }
 
+interface UploadOptions {
+  replaceFileId?: string
+}
+
 export function uploadWithProgress(
   file: File,
   folderId: string | null,
   { onProgress, signal }: UploadProgressCallbacks,
   thumbnail?: File,
+  options?: UploadOptions,
 ): Promise<BackendFileItem> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
@@ -62,6 +67,9 @@ export function uploadWithProgress(
     }
     if (thumbnail) {
       formData.append('thumbnail', thumbnail)
+    }
+    if (options?.replaceFileId) {
+      formData.append('replaceFileId', options.replaceFileId)
     }
 
     xhr.send(formData)

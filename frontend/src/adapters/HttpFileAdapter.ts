@@ -1,4 +1,4 @@
-import type { FilePort, UploadProgressCallbacks } from '@/ports'
+import type { FilePort, UploadProgressCallbacks, UploadOptions } from '@/ports'
 import type { FileItem } from '@/domain/types'
 import { apiFetch, apiFetchJSON } from '@/lib/api-fetch'
 import { uploadWithProgress } from '@/lib/xhr-upload'
@@ -94,7 +94,7 @@ export class HttpFileAdapter implements FilePort {
     }
   }
 
-  async uploadFile(file: File, folderId: string | null): Promise<FileItem> {
+  async uploadFile(file: File, folderId: string | null, options?: UploadOptions): Promise<FileItem> {
     const vaultStore = useVaultStore()
     if (!vaultStore.dek) throw new Error('Vault is locked')
 
@@ -123,6 +123,9 @@ export class HttpFileAdapter implements FilePort {
     if (encryptedThumbnail) {
       formData.append('thumbnail', new File([encryptedThumbnail], 'thumb.jpg', { type: 'application/octet-stream' }))
     }
+    if (options?.replaceFileId) {
+      formData.append('replaceFileId', options.replaceFileId)
+    }
 
     const item = await apiFetch<BackendFileItem>('/files/upload', {
       method: 'POST',
@@ -135,6 +138,7 @@ export class HttpFileAdapter implements FilePort {
     file: File,
     folderId: string | null,
     callbacks: UploadProgressCallbacks,
+    options?: UploadOptions,
   ): Promise<FileItem> {
     const vaultStore = useVaultStore()
     if (!vaultStore.dek) throw new Error('Vault is locked')
@@ -159,7 +163,7 @@ export class HttpFileAdapter implements FilePort {
     const thumbFile = encryptedThumbnail
       ? new File([encryptedThumbnail], 'thumb.jpg', { type: 'application/octet-stream' })
       : undefined
-    const item = await uploadWithProgress(encryptedFile, folderId, callbacks, thumbFile)
+    const item = await uploadWithProgress(encryptedFile, folderId, callbacks, thumbFile, options)
     return mapFile(item)
   }
 }

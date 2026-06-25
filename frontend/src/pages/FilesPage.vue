@@ -210,9 +210,8 @@ async function handleFileSelect(event: Event) {
   const selectedFiles = target.files
   if (!selectedFiles) return
 
-  for (const file of selectedFiles) {
-    uploadQueue.addUpload(file)
-  }
+  const entries = Array.from(selectedFiles).map((file) => ({ file, folderId: fileStore.currentFolderId }))
+  await uploadQueue.addUploads(entries)
 
   target.value = ''
 }

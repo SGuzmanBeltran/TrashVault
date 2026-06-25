@@ -84,12 +84,13 @@ export function useExternalFolderUpload() {
       }
     }
 
-    for (const { file, path } of entries) {
+    const uploadEntries = entries.map(({ file, path }) => {
       const parts = path.split('/')
       const folderPath = parts.slice(0, -1).join('/')
       const folderId = pathToId.get(folderPath) ?? parentFolderId
-      uploadQueue.addUpload(file, folderId)
-    }
+      return { file, folderId }
+    })
+    await uploadQueue.addUploads(uploadEntries)
 
     await fileStore.loadFolder(fileStore.currentFolderId)
   }
@@ -131,9 +132,11 @@ export function useExternalFolderUpload() {
     const droppedFiles = event.dataTransfer?.files
     if (!droppedFiles) return
 
-    for (const file of droppedFiles) {
-      uploadQueue.addUpload(file, targetFolderId)
-    }
+    const uploadEntries = Array.from(droppedFiles).map((file) => ({
+      file,
+      folderId: targetFolderId,
+    }))
+    await uploadQueue.addUploads(uploadEntries)
 
     if (targetFolderId === fileStore.currentFolderId) {
       await fileStore.loadFolder(fileStore.currentFolderId)

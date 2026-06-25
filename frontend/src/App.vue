@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import UploadPanel from '@/components/UploadPanel.vue'
+import UploadConflictModal from '@/components/UploadConflictModal.vue'
 import VaultUnlockModal from '@/components/VaultUnlockModal.vue'
 import NotificationPanel from '@/components/NotificationPanel.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
@@ -22,6 +23,7 @@ onMounted(() => {
   <NotificationPanel />
   <VaultUnlockModal v-if="authStore.isAuthenticated && !vaultStore.isUnlocked && !vaultStore.isLoading" />
   <UploadPanel />
+  <UploadConflictModal />
 
   <div v-if="!authStore.initialCheckDone" class="flex min-h-screen items-center justify-center bg-surface">
     <div class="w-full max-w-5xl space-y-6 px-6">

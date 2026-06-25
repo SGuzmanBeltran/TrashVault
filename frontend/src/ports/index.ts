@@ -5,6 +5,10 @@ export interface UploadProgressCallbacks {
   signal?: AbortSignal
 }
 
+export interface UploadOptions {
+  replaceFileId?: string
+}
+
 export interface FilePort {
   listFiles(folderId: string | null): Promise<FileItem[]>
   getFile(id: string): Promise<FileItem>
@@ -13,11 +17,12 @@ export interface FilePort {
   renameFile(id: string, name: string): Promise<FileItem>
   downloadFile(id: string): Promise<{ blobUrl: string; filename: string; mimeType: string }>
   getThumbnailUrl(id: string): Promise<string | null>
-  uploadFile(file: File, folderId: string | null): Promise<FileItem>
+  uploadFile(file: File, folderId: string | null, options?: UploadOptions): Promise<FileItem>
   uploadFileWithProgress(
     file: File,
     folderId: string | null,
     callbacks: UploadProgressCallbacks,
+    options?: UploadOptions,
   ): Promise<FileItem>
 }
 
