@@ -77,6 +77,7 @@ export function useExternalFolderUpload() {
       try {
         const folder = await folderService.createFolder(name, parentId)
         pathToId.set(path, folder.id)
+        fileStore.addCreatedFolder(folder)
       } catch (error) {
         const message = error instanceof Error ? error.message : `Failed to create folder "${name}"`
         notify.error(message)
@@ -91,8 +92,6 @@ export function useExternalFolderUpload() {
       return { file, folderId }
     })
     await uploadQueue.addUploads(uploadEntries)
-
-    await fileStore.loadFolder(fileStore.currentFolderId)
   }
 
   async function uploadExternalDrop(event: DragEvent, targetFolderId: string | null) {
@@ -137,10 +136,6 @@ export function useExternalFolderUpload() {
       folderId: targetFolderId,
     }))
     await uploadQueue.addUploads(uploadEntries)
-
-    if (targetFolderId === fileStore.currentFolderId) {
-      await fileStore.loadFolder(fileStore.currentFolderId)
-    }
   }
 
   return {

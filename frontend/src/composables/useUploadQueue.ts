@@ -97,7 +97,7 @@ export function useUploadQueue() {
           }
         }
 
-        fileStore.loadFolder(fileStore.currentFolderId)
+        fileStore.upsertUploadedFile(result, folderId)
         setTimeout(() => {
           uploads.value = uploads.value.filter((u) => u.id !== id)
         }, 5000)

@@ -249,10 +249,37 @@ export const useFileStore = defineStore('files', () => {
     }
   }
 
+  function upsertUploadedFile(file: FileItem, folderId: string | null) {
+    if (folderId !== currentFolderId.value || isSearchActive.value) return
+
+    const byId = files.value.findIndex((f) => f.id === file.id)
+    if (byId >= 0) {
+      files.value[byId] = file
+      return
+    }
+
+    files.value = files.value.filter(
+      (f) => !(f.id.startsWith('pending-') && f.name === file.name),
+    )
+
+    const byName = files.value.findIndex((f) => f.name === file.name)
+    if (byName >= 0) {
+      files.value[byName] = file
+    } else {
+      files.value.push(file)
+    }
+  }
+
+  function addCreatedFolder(folder: Folder) {
+    if (folder.parentId !== currentFolderId.value || isSearchActive.value) return
+    if (folders.value.some((f) => f.id === folder.id)) return
+    folders.value.push(folder)
+  }
+
   async function uploadFile(file: File) {
     try {
-      await fileService.uploadFile(file, currentFolderId.value)
-      await loadFolder(currentFolderId.value)
+      const result = await fileService.uploadFile(file, currentFolderId.value)
+      upsertUploadedFile(result, currentFolderId.value)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Upload failed'
       throw new Error(message)
@@ -530,6 +557,8 @@ export const useFileStore = defineStore('files', () => {
     navigateToFolder,
     openFolderFromSearch,
     createFolder,
+    upsertUploadedFile,
+    addCreatedFolder,
     uploadFile,
     deleteFile,
     deleteFolder,
