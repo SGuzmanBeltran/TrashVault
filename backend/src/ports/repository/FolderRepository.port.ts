@@ -22,5 +22,7 @@ export interface FolderRepositoryPort {
   findAllActiveByUserId(userId: string): Promise<FolderEntity[]>;
   searchByName(userId: string, query: string): Promise<FolderEntity[]>;
   permanentDelete(id: string, userId: string): Promise<void>;
+  permanentDeleteMany(ids: string[], userId: string): Promise<void>;
+  restoreManyFromTrash(ids: string[], userId: string): Promise<void>;
   emptyTrash(userId: string): Promise<void>;
 }

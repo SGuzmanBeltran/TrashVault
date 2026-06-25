@@ -2,11 +2,14 @@ import { FileEntity, FileRepositoryPort } from '../ports/repository/FileReposito
 import { FolderEntity, FolderRepositoryPort } from '../ports/repository/FolderRepository.port';
 import { StoragePort } from '../ports/storage/Storage.port';
 import { wrapRepositoryError } from '../errors';
+import { mapInParallel } from '../lib/mapInParallel';
 
 export interface TrashData {
   files: FileEntity[];
   folders: FolderEntity[];
 }
+
+const STORAGE_DELETE_CONCURRENCY = 20;
 
 export class TrashService {
   constructor(
@@ -39,9 +42,7 @@ export class TrashService {
     try {
       const trashedFolders = await this.folderRepository.findTrashedByUserId(userId);
       const folderIds = this.collectTrashedFolderDescendants(id, trashedFolders);
-      for (const folderId of folderIds) {
-        await this.folderRepository.restoreFromTrash(folderId, userId);
-      }
+      await this.folderRepository.restoreManyFromTrash(folderIds, userId);
     } catch (error) {
       throw wrapRepositoryError(error);
     }
@@ -52,10 +53,7 @@ export class TrashService {
       const file = await this.fileRepository.findById(id, userId);
       if (!file) return;
 
-      await this.storage.delete(file.key).catch(() => {});
-      if (file.thumbnailKey) {
-        await this.storage.delete(file.thumbnailKey).catch(() => {});
-      }
+      await this.deleteFilesFromStorage([file]);
       await this.fileRepository.permanentDelete(id, userId);
     } catch (error) {
       throw wrapRepositoryError(error);
@@ -66,10 +64,16 @@ export class TrashService {
     try {
       const trashedFolders = await this.folderRepository.findTrashedByUserId(userId);
       const folderIds = this.collectTrashedFolderDescendants(id, trashedFolders);
-      await this.permanentDeleteFilesInFolders(folderIds, userId);
-      for (let i = folderIds.length - 1; i >= 0; i--) {
-        await this.folderRepository.permanentDelete(folderIds[i], userId);
-      }
+      const filesToPurge = await this.fileRepository.findActiveByFolderIds(userId, folderIds);
+
+      await this.deleteFilesFromStorage(filesToPurge);
+      await Promise.all([
+        this.fileRepository.permanentDeleteMany(
+          filesToPurge.map((file) => file.id),
+          userId,
+        ),
+        this.folderRepository.permanentDeleteMany(folderIds, userId),
+      ]);
     } catch (error) {
       throw wrapRepositoryError(error);
     }
@@ -78,21 +82,23 @@ export class TrashService {
   async emptyTrash(userId: string): Promise<void> {
     try {
       const trashedFolders = await this.folderRepository.findTrashedByUserId(userId);
-      await this.permanentDeleteFilesInFolders(
-        trashedFolders.map((folder) => folder.id),
-        userId,
-      );
+      const folderIds = trashedFolders.map((folder) => folder.id);
 
-      const trashedFiles = await this.fileRepository.findTrashedByUserId(userId);
-      for (const file of trashedFiles) {
-        await this.storage.delete(file.key).catch(() => {});
-        if (file.thumbnailKey) {
-          await this.storage.delete(file.thumbnailKey).catch(() => {});
-        }
-      }
+      const [trashedFiles, filesInFolders] = await Promise.all([
+        this.fileRepository.findTrashedByUserId(userId),
+        this.fileRepository.findActiveByFolderIds(userId, folderIds),
+      ]);
 
-      await this.fileRepository.emptyTrash(userId);
-      await this.folderRepository.emptyTrash(userId);
+      const filesToPurge = this.dedupeFiles([...trashedFiles, ...filesInFolders]);
+      await this.deleteFilesFromStorage(filesToPurge);
+
+      await Promise.all([
+        this.fileRepository.permanentDeleteMany(
+          filesToPurge.map((file) => file.id),
+          userId,
+        ),
+        this.folderRepository.emptyTrash(userId),
+      ]);
     } catch (error) {
       throw wrapRepositoryError(error);
     }
@@ -127,16 +133,25 @@ export class TrashService {
     return ids;
   }
 
-  private async permanentDeleteFilesInFolders(folderIds: string[], userId: string): Promise<void> {
-    for (const folderId of folderIds) {
-      const files = await this.fileRepository.findByUserId(userId, folderId);
-      for (const file of files) {
-        await this.storage.delete(file.key).catch(() => {});
-        if (file.thumbnailKey) {
-          await this.storage.delete(file.thumbnailKey).catch(() => {});
-        }
-        await this.fileRepository.permanentDelete(file.id, userId);
+  private dedupeFiles(files: FileEntity[]): FileEntity[] {
+    const byId = new Map<string, FileEntity>();
+    for (const file of files) {
+      byId.set(file.id, file);
+    }
+    return Array.from(byId.values());
+  }
+
+  private async deleteFilesFromStorage(files: FileEntity[]): Promise<void> {
+    const keys: string[] = [];
+    for (const file of files) {
+      keys.push(file.key);
+      if (file.thumbnailKey) {
+        keys.push(file.thumbnailKey);
       }
     }
+
+    await mapInParallel(keys, STORAGE_DELETE_CONCURRENCY, (key) =>
+      this.storage.delete(key).catch(() => {}),
+    );
   }
 }

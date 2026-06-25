@@ -29,7 +29,9 @@ export interface FileRepositoryPort {
   moveToTrash(id: string, userId: string): Promise<void>;
   restoreFromTrash(id: string, userId: string): Promise<void>;
   findTrashedByUserId(userId: string): Promise<FileEntity[]>;
+  findActiveByFolderIds(userId: string, folderIds: string[]): Promise<FileEntity[]>;
   searchByName(userId: string, query: string): Promise<FileEntity[]>;
   permanentDelete(id: string, userId: string): Promise<void>;
+  permanentDeleteMany(ids: string[], userId: string): Promise<void>;
   emptyTrash(userId: string): Promise<void>;
 }

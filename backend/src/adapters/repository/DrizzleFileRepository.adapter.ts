@@ -1,5 +1,5 @@
 import { FileEntity, FileRepositoryPort, NewFile } from '../../ports/repository/FileRepository.port';
-import { and, eq, isNotNull, isNull, ilike } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, ilike, inArray } from 'drizzle-orm';
 
 import { db } from '../../db/index';
 import { files } from '../../db/schema';
@@ -86,6 +86,18 @@ export class DrizzleFileRepositoryAdapter implements FileRepositoryPort {
     );
   }
 
+  async findActiveByFolderIds(userId: string, folderIds: string[]): Promise<FileEntity[]> {
+    if (folderIds.length === 0) return [];
+
+    return db.select().from(files).where(
+      and(
+        eq(files.userId, userId),
+        inArray(files.folderId, folderIds),
+        isNull(files.trashedAt),
+      ),
+    );
+  }
+
   async searchByName(userId: string, query: string): Promise<FileEntity[]> {
     return db.select().from(files).where(
       and(
@@ -99,6 +111,14 @@ export class DrizzleFileRepositoryAdapter implements FileRepositoryPort {
   async permanentDelete(id: string, userId: string): Promise<void> {
     await db.delete(files).where(
       and(eq(files.id, id), eq(files.userId, userId))
+    );
+  }
+
+  async permanentDeleteMany(ids: string[], userId: string): Promise<void> {
+    if (ids.length === 0) return;
+
+    await db.delete(files).where(
+      and(eq(files.userId, userId), inArray(files.id, ids)),
     );
   }
 

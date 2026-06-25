@@ -1,5 +1,5 @@
 import { FolderEntity, FolderRepositoryPort, NewFolder } from '../../ports/repository/FolderRepository.port';
-import { and, eq, isNotNull, isNull, ilike } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, ilike, inArray } from 'drizzle-orm';
 
 import { db } from '../../db/index';
 import { folders } from '../../db/schema';
@@ -91,6 +91,22 @@ export class DrizzleFolderRepositoryAdapter implements FolderRepositoryPort {
   async permanentDelete(id: string, userId: string): Promise<void> {
     await db.delete(folders).where(
       and(eq(folders.id, id), eq(folders.userId, userId))
+    );
+  }
+
+  async permanentDeleteMany(ids: string[], userId: string): Promise<void> {
+    if (ids.length === 0) return;
+
+    await db.delete(folders).where(
+      and(eq(folders.userId, userId), inArray(folders.id, ids)),
+    );
+  }
+
+  async restoreManyFromTrash(ids: string[], userId: string): Promise<void> {
+    if (ids.length === 0) return;
+
+    await db.update(folders).set({ trashedAt: null }).where(
+      and(eq(folders.userId, userId), inArray(folders.id, ids)),
     );
   }
 
