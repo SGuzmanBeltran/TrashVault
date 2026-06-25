@@ -448,15 +448,20 @@ export const useFileStore = defineStore('files', () => {
     const folderIds = [...selectedFolders.value]
 
     try {
+      await Promise.all([
+        ...fileIds.map((id) => fileService.deleteFile(id)),
+        ...folderIds.map((id) => folderService.deleteFolder(id)),
+      ])
+
+      const deletedFileIds = new Set(fileIds)
+      const deletedFolderIds = new Set(folderIds)
+      files.value = files.value.filter((file) => !deletedFileIds.has(file.id))
+      folders.value = folders.value.filter((folder) => !deletedFolderIds.has(folder.id))
+
       for (const id of fileIds) {
-        await fileService.deleteFile(id)
-        files.value = files.value.filter((file) => file.id !== id)
         removeFromSearchResults(id)
       }
-
       for (const id of folderIds) {
-        await folderService.deleteFolder(id)
-        folders.value = folders.value.filter((folder) => folder.id !== id)
         removeFromSearchResults(undefined, id)
       }
 
