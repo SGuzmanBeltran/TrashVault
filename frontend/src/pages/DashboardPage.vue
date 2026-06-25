@@ -73,8 +73,6 @@ function getGreeting(): string {
             label="Total Files"
             :value="String(statsStore.stats.totalFiles)"
             :icon="Files"
-            trend="+3 this week"
-            :trend-up="true"
           />
         </div>
         <div class="animate-in animate-stagger-2">
