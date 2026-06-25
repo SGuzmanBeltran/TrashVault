@@ -37,7 +37,8 @@ export class TrashService {
 
   async restoreFolder(id: string, userId: string): Promise<void> {
     try {
-      const folderIds = await this.collectTrashedFolderIds(id, userId);
+      const trashedFolders = await this.folderRepository.findTrashedByUserId(userId);
+      const folderIds = this.collectTrashedFolderDescendants(id, trashedFolders);
       for (const folderId of folderIds) {
         await this.folderRepository.restoreFromTrash(folderId, userId);
       }
@@ -63,7 +64,8 @@ export class TrashService {
 
   async permanentDeleteFolder(id: string, userId: string): Promise<void> {
     try {
-      const folderIds = await this.collectTrashedFolderIds(id, userId);
+      const trashedFolders = await this.folderRepository.findTrashedByUserId(userId);
+      const folderIds = this.collectTrashedFolderDescendants(id, trashedFolders);
       await this.permanentDeleteFilesInFolders(folderIds, userId);
       for (let i = folderIds.length - 1; i >= 0; i--) {
         await this.folderRepository.permanentDelete(folderIds[i], userId);
@@ -75,6 +77,12 @@ export class TrashService {
 
   async emptyTrash(userId: string): Promise<void> {
     try {
+      const trashedFolders = await this.folderRepository.findTrashedByUserId(userId);
+      await this.permanentDeleteFilesInFolders(
+        trashedFolders.map((folder) => folder.id),
+        userId,
+      );
+
       const trashedFiles = await this.fileRepository.findTrashedByUserId(userId);
       for (const file of trashedFiles) {
         await this.storage.delete(file.key).catch(() => {});
@@ -82,6 +90,7 @@ export class TrashService {
           await this.storage.delete(file.thumbnailKey).catch(() => {});
         }
       }
+
       await this.fileRepository.emptyTrash(userId);
       await this.folderRepository.emptyTrash(userId);
     } catch (error) {
@@ -89,15 +98,27 @@ export class TrashService {
     }
   }
 
-  private async collectTrashedFolderIds(rootId: string, userId: string): Promise<string[]> {
+  private collectTrashedFolderDescendants(
+    rootId: string,
+    trashedFolders: FolderEntity[],
+  ): string[] {
+    const childrenByParent = new Map<string, FolderEntity[]>();
+    for (const folder of trashedFolders) {
+      const parentKey = folder.parentId ?? '';
+      const siblings = childrenByParent.get(parentKey);
+      if (siblings) {
+        siblings.push(folder);
+      } else {
+        childrenByParent.set(parentKey, [folder]);
+      }
+    }
+
     const ids: string[] = [rootId];
     const queue: string[] = [rootId];
 
     while (queue.length > 0) {
       const parentId = queue.shift()!;
-      const allFolders = await this.folderRepository.findByUserId(userId, parentId);
-      const trashedChildren = allFolders.filter((f) => f.trashedAt !== null);
-      for (const child of trashedChildren) {
+      for (const child of childrenByParent.get(parentId) ?? []) {
         ids.push(child.id);
         queue.push(child.id);
       }
