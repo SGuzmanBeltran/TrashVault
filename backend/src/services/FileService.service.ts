@@ -67,6 +67,49 @@ export class FileService {
     }
   }
 
+  async replaceFileContent(
+    id: string,
+    userId: string,
+    params: { buffer: ArrayBuffer; mimeType: string; size: number; thumbnail: ArrayBuffer | null },
+  ): Promise<FileEntity> {
+    try {
+      const file = await this.fileRepository.findById(id, userId);
+      if (!file || file.trashedAt) {
+        throw new NotFoundError('File not found');
+      }
+
+      try {
+        await this.storage.upload(params.buffer, file.key, params.mimeType);
+      } catch (error) {
+        throw wrapStorageError(error);
+      }
+
+      let thumbnailKey = file.thumbnailKey;
+      if (params.thumbnail) {
+        try {
+          thumbnailKey = this.thumbnailService.getThumbnailKey(file.key);
+          await this.storage.upload(params.thumbnail, thumbnailKey, 'image/jpeg');
+        } catch {
+          thumbnailKey = file.thumbnailKey;
+        }
+      }
+
+      const updated = await this.fileRepository.updateContent(id, userId, {
+        size: params.size,
+        mimeType: params.mimeType,
+        thumbnailKey,
+      });
+      if (!updated) {
+        throw new NotFoundError('File not found');
+      }
+
+      return updated;
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
+      throw wrapRepositoryError(error);
+    }
+  }
+
   async getThumbnailUrl(id: string, userId: string, expiresIn: number = 3600): Promise<string | null> {
     try {
       const file = await this.fileRepository.findById(id, userId);

@@ -9,6 +9,17 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
     const fileService = createFileService();
     const uploadedFile = body.file;
     const buffer = await uploadedFile.arrayBuffer();
+    const thumbnail = body.thumbnail ? await body.thumbnail.arrayBuffer() : null;
+
+    if (body.replaceFileId) {
+      return fileService.replaceFileContent(body.replaceFileId, user!.id, {
+        buffer,
+        mimeType: uploadedFile.type,
+        size: buffer.byteLength,
+        thumbnail,
+      });
+    }
+
     const key = `files/${randomUUID()}-${uploadedFile.name}`;
 
     return fileService.createFile({
@@ -21,7 +32,7 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
       key,
       folderId: body.folderId || null,
       buffer,
-      thumbnail: body.thumbnail ? await body.thumbnail.arrayBuffer() : null,
+      thumbnail,
     });
   }, {
     type: 'multipart',
@@ -29,6 +40,7 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
       file: t.File(),
       folderId: t.Optional(t.String()),
       thumbnail: t.Optional(t.File()),
+      replaceFileId: t.Optional(t.String()),
     }),
     auth: true,
   })
