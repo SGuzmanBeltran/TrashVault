@@ -43,7 +43,6 @@ const folderInput = ref<HTMLInputElement | null>(null)
 const dragCounter = ref(0)
 const isDragging = computed(() => dragCounter.value > 0)
 const previewFile = ref<FileItem | null>(null)
-const openMenuFileId = ref<string | null>(null)
 const showSortMenu = ref(false)
 const sortButtonRef = ref<HTMLElement | null>(null)
 const sortMenuPanelRef = ref<HTMLElement | null>(null)
@@ -791,10 +790,7 @@ async function onDrop(event: DragEvent) {
             v-for="(file, i) in fileStore.allItems.files"
             :key="file.id"
             class="animate-in"
-            :class="[
-              viewMode === 'grid' ? `animate-stagger-${Math.min(i + 1, 6)}` : '',
-              openMenuFileId === file.id ? 'relative z-20' : '',
-            ]"
+            :class="viewMode === 'grid' ? `animate-stagger-${Math.min(i + 1, 6)}` : ''"
           >
             <FileListRow
               v-if="viewMode === 'list'"
@@ -805,7 +801,6 @@ async function onDrop(event: DragEvent) {
               @delete="fileStore.deleteFile"
               @preview="handlePreviewFile"
               @rename="openRenameFile"
-              @menu-change="(open) => openMenuFileId = open ? file.id : null"
             />
             <FileCard
               v-else
@@ -816,7 +811,6 @@ async function onDrop(event: DragEvent) {
               @delete="fileStore.deleteFile"
               @preview="handlePreviewFile"
               @rename="openRenameFile"
-              @menu-change="(open) => openMenuFileId = open ? file.id : null"
             />
           </div>
         </div>

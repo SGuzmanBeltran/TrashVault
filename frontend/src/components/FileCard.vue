@@ -16,7 +16,7 @@ import {
   Play,
   Loader2,
 } from 'lucide-vue-next'
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { FileItem } from '@/domain/types'
 import { formatBytes, formatDate, getFileIcon } from '@/utils'
 import { useFileService } from '@/services'
@@ -25,6 +25,8 @@ import { useVaultStore } from '@/stores/vault'
 import { useNotificationStore } from '@/stores/notification'
 import { setFileDragData, endFileDrag } from '@/lib/file-drag'
 import { setFileDragPreview, removeFileDragPreview } from '@/lib/file-drag-preview'
+import ItemMenuDropdown from '@/components/ItemMenuDropdown.vue'
+import { itemMenuKey } from '@/composables/useItemMenuRegistry'
 
 const props = defineProps<{
   file: FileItem
@@ -37,33 +39,12 @@ const emit = defineEmits<{
   delete: [id: string]
   preview: [file: FileItem]
   rename: [file: FileItem]
-  menuChange: [open: boolean]
 }>()
 
 const fileService = useFileService()
 const fileStore = useFileStore()
 const vaultStore = useVaultStore()
 const notify = useNotificationStore()
-const cardRef = ref<HTMLElement | null>(null)
-const showMenu = ref(false)
-
-watch(showMenu, (open) => emit('menuChange', open))
-
-function toggleMenu() {
-  showMenu.value = !showMenu.value
-}
-
-function onClickDocument(e: MouseEvent) {
-  if (!cardRef.value) return
-  const target = e.target as Node
-  if (!cardRef.value.contains(target)) {
-    showMenu.value = false
-  }
-}
-
-onMounted(() => document.addEventListener('click', onClickDocument))
-onUnmounted(() => document.removeEventListener('click', onClickDocument))
-
 const thumbnailUrl = ref<string | null>(null)
 const thumbnailError = ref(false)
 const isDragging = ref(false)
@@ -104,7 +85,7 @@ watch(
   { immediate: true },
 )
 
-async function downloadFile() {
+async function downloadFile(close: () => void) {
   isDownloading.value = true
   try {
     const result = await fileService.downloadFile(props.file.id)
@@ -120,6 +101,7 @@ async function downloadFile() {
     notify.error(message)
   } finally {
     isDownloading.value = false
+    close()
   }
 }
 
@@ -177,18 +159,18 @@ const iconBgMap: Record<string, string> = {
 }
 
 const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg-surface-overlay')
+
+const menuKey = computed(() => itemMenuKey('file', props.file.id))
 </script>
 
 <template>
   <!-- Visual poster card for images/videos with thumbnails -->
   <div
     v-if="useVisualLayout"
-    ref="cardRef"
-    class="group relative aspect-square cursor-pointer rounded-xl border border-surface-border bg-surface-overlay transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/20"
+    class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-surface-border bg-surface-overlay transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/20"
     :class="[
       selected ? 'border-accent ring-2 ring-accent/45' : '',
       isDragging ? 'opacity-50 ring-1 ring-accent/40' : '',
-      showMenu ? 'z-20 overflow-visible' : 'overflow-hidden',
     ]"
     draggable="true"
     @click="emit('select', file.id, $event)"
@@ -244,73 +226,58 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
       </div>
     </div>
 
-    <div class="absolute right-2 top-2">
-      <button
-        class="rounded-lg bg-black/45 p-1.5 text-white/90 opacity-0 backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-black/60"
-        :class="showMenu ? 'opacity-100' : ''"
-        @click.stop="toggleMenu"
-      >
-        <MoreVertical class="h-4 w-4" />
-      </button>
-
-      <Transition
-        enter-active-class="transition duration-150 ease-out"
-        enter-from-class="scale-95 opacity-0"
-        enter-to-class="scale-100 opacity-100"
-        leave-active-class="transition duration-100 ease-in"
-        leave-from-class="scale-100 opacity-100"
-        leave-to-class="scale-95 opacity-0"
-      >
-        <div
-          v-if="showMenu"
-          class="absolute right-0 top-full z-30 mt-1 w-40 overflow-hidden rounded-xl border border-surface-border bg-surface-raised shadow-xl shadow-black/30"
+    <ItemMenuDropdown :menu-key="menuKey" class="absolute right-2 top-2">
+      <template #trigger="{ toggle, open }">
+        <button
+          class="rounded-lg bg-black/45 p-1.5 text-white/90 opacity-0 backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-black/60"
+          :class="open ? 'opacity-100' : ''"
+          @click.stop="toggle"
         >
-          <div class="p-1">
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
-              @click.stop="emit('preview', file); showMenu = false"
-            >
-              <Eye class="h-4 w-4" />
-              Preview
-            </button>
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
-              :disabled="isDownloading"
-              @click.stop="downloadFile(); showMenu = false"
-            >
-              <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
-              <Download v-else class="h-4 w-4" />
-              {{ isDownloading ? 'Decrypting...' : 'Download' }}
-            </button>
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
-              @click.stop="emit('rename', file); showMenu = false"
-            >
-              <Pencil class="h-4 w-4" />
-              Rename
-            </button>
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"
-              @click.stop="emit('delete', file.id); showMenu = false"
-            >
-              <Trash2 class="h-4 w-4" />
-              Delete
-            </button>
-          </div>
-        </div>
-      </Transition>
-    </div>
+          <MoreVertical class="h-4 w-4" />
+        </button>
+      </template>
+      <template #menu="{ close }">
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+          @click.stop="emit('preview', file); close()"
+        >
+          <Eye class="h-4 w-4" />
+          Preview
+        </button>
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+          :disabled="isDownloading"
+          @click.stop="downloadFile(close)"
+        >
+          <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
+          <Download v-else class="h-4 w-4" />
+          {{ isDownloading ? 'Decrypting...' : 'Download' }}
+        </button>
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+          @click.stop="emit('rename', file); close()"
+        >
+          <Pencil class="h-4 w-4" />
+          Rename
+        </button>
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"
+          @click.stop="emit('delete', file.id); close()"
+        >
+          <Trash2 class="h-4 w-4" />
+          Delete
+        </button>
+      </template>
+    </ItemMenuDropdown>
   </div>
 
   <!-- Square tile for other file types -->
   <div
     v-else
-    ref="cardRef"
-    class="group relative flex aspect-square cursor-pointer flex-col rounded-xl border border-surface-border bg-surface-raised transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/10"
+    class="group relative flex aspect-square cursor-pointer flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-raised transition-all duration-200 hover:border-surface-border/80 hover:shadow-lg hover:shadow-black/10"
     :class="[
       selected ? 'border-accent ring-2 ring-accent/45' : '',
       isDragging ? 'opacity-50 ring-1 ring-accent/40' : '',
-      showMenu ? 'z-20 overflow-visible' : 'overflow-hidden',
     ]"
     draggable="true"
     @click="emit('select', file.id, $event)"
@@ -335,61 +302,48 @@ const iconBg = computed(() => iconBgMap[getFileIcon(props.file.mimeType)] ?? 'bg
       </div>
     </div>
 
-    <div class="absolute right-2 top-2">
-      <button
-        class="rounded-lg bg-surface-raised/80 p-1.5 text-surface-fg-muted opacity-0 backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-surface-overlay hover:text-surface-fg"
-        :class="showMenu ? 'opacity-100' : ''"
-        @click.stop="toggleMenu"
-      >
-        <MoreVertical class="h-4 w-4" />
-      </button>
-
-      <Transition
-        enter-active-class="transition duration-150 ease-out"
-        enter-from-class="scale-95 opacity-0"
-        enter-to-class="scale-100 opacity-100"
-        leave-active-class="transition duration-100 ease-in"
-        leave-from-class="scale-100 opacity-100"
-        leave-to-class="scale-95 opacity-0"
-      >
-        <div
-          v-if="showMenu"
-          class="absolute right-0 top-full z-30 mt-1 w-40 overflow-hidden rounded-xl border border-surface-border bg-surface-raised shadow-xl shadow-black/30"
+    <ItemMenuDropdown :menu-key="menuKey" class="absolute right-2 top-2">
+      <template #trigger="{ toggle, open }">
+        <button
+          class="rounded-lg bg-surface-raised/80 p-1.5 text-surface-fg-muted opacity-0 backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-surface-overlay hover:text-surface-fg"
+          :class="open ? 'opacity-100' : ''"
+          @click.stop="toggle"
         >
-          <div class="p-1">
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
-              @click.stop="emit('preview', file); showMenu = false"
-            >
-              <Eye class="h-4 w-4" />
-              Preview
-            </button>
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
-              :disabled="isDownloading"
-              @click.stop="downloadFile(); showMenu = false"
-            >
-              <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
-              <Download v-else class="h-4 w-4" />
-              {{ isDownloading ? 'Decrypting...' : 'Download' }}
-            </button>
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
-              @click.stop="emit('rename', file); showMenu = false"
-            >
-              <Pencil class="h-4 w-4" />
-              Rename
-            </button>
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"
-              @click.stop="emit('delete', file.id); showMenu = false"
-            >
-              <Trash2 class="h-4 w-4" />
-              Delete
-            </button>
-          </div>
-        </div>
-      </Transition>
-    </div>
+          <MoreVertical class="h-4 w-4" />
+        </button>
+      </template>
+      <template #menu="{ close }">
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+          @click.stop="emit('preview', file); close()"
+        >
+          <Eye class="h-4 w-4" />
+          Preview
+        </button>
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+          :disabled="isDownloading"
+          @click.stop="downloadFile(close)"
+        >
+          <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
+          <Download v-else class="h-4 w-4" />
+          {{ isDownloading ? 'Decrypting...' : 'Download' }}
+        </button>
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+          @click.stop="emit('rename', file); close()"
+        >
+          <Pencil class="h-4 w-4" />
+          Rename
+        </button>
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"
+          @click.stop="emit('delete', file.id); close()"
+        >
+          <Trash2 class="h-4 w-4" />
+          Delete
+        </button>
+      </template>
+    </ItemMenuDropdown>
   </div>
 </template>

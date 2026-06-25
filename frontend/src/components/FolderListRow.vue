@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Folder, MoreVertical, Trash2, Pencil, Download, Loader2 } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { Folder as FolderType } from '@/domain/types'
 import { formatDate } from '@/utils'
 import { useFolderService } from '@/services'
@@ -8,6 +8,8 @@ import { useFileStore } from '@/stores/files'
 import { useNotificationStore } from '@/stores/notification'
 import { useFolderDropTarget } from '@/composables/useFolderDropTarget'
 import { useExternalFolderUpload } from '@/composables/useExternalFolderUpload'
+import ItemMenuDropdown from '@/components/ItemMenuDropdown.vue'
+import { itemMenuKey } from '@/composables/useItemMenuRegistry'
 
 const props = defineProps<{
   folder: FolderType
@@ -26,15 +28,16 @@ const folderService = useFolderService()
 const fileStore = useFileStore()
 const notify = useNotificationStore()
 const { uploadExternalDrop } = useExternalFolderUpload()
-const showMenu = ref(false)
 const isDownloading = ref(false)
+
+const menuKey = computed(() => itemMenuKey('folder', props.folder.id))
 
 const { isDropTarget, onDragEnter, onDragOver, onDragLeave, onDrop } = useFolderDropTarget({
   onMoveFiles: (fileIds) => fileStore.moveFilesToFolder(fileIds, props.folder.id),
   onExternalDrop: (event) => uploadExternalDrop(event, props.folder.id),
 })
 
-async function downloadFolder() {
+async function downloadFolder(close: () => void) {
   isDownloading.value = true
   try {
     const result = await folderService.downloadFolder(props.folder.id)
@@ -50,7 +53,7 @@ async function downloadFolder() {
     notify.error(message)
   } finally {
     isDownloading.value = false
-    showMenu.value = false
+    close()
   }
 }
 </script>
@@ -91,54 +94,41 @@ async function downloadFolder() {
       {{ formatDate(folder.createdAt) }}
     </span>
 
-    <div class="relative justify-self-end">
-      <button
-        class="rounded-md p-1.5 text-surface-fg-subtle opacity-0 transition-all group-hover:opacity-100 hover:bg-surface-overlay hover:text-surface-fg"
-        :class="showMenu ? 'opacity-100' : ''"
-        @click.stop="showMenu = !showMenu"
-      >
-        <MoreVertical class="h-4 w-4" />
-      </button>
-
-      <Transition
-        enter-active-class="transition duration-150 ease-out"
-        enter-from-class="scale-95 opacity-0"
-        enter-to-class="scale-100 opacity-100"
-        leave-active-class="transition duration-100 ease-in"
-        leave-from-class="scale-100 opacity-100"
-        leave-to-class="scale-95 opacity-0"
-      >
-        <div
-          v-if="showMenu"
-          class="absolute right-0 top-full z-30 mt-1 w-40 overflow-hidden rounded-xl border border-surface-border bg-surface-raised shadow-xl shadow-black/30"
+    <ItemMenuDropdown :menu-key="menuKey" class="justify-self-end">
+      <template #trigger="{ toggle, open }">
+        <button
+          class="rounded-md p-1.5 text-surface-fg-subtle opacity-0 transition-all group-hover:opacity-100 hover:bg-surface-overlay hover:text-surface-fg"
+          :class="open ? 'opacity-100' : ''"
+          @click.stop="toggle"
         >
-          <div class="p-1">
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="isDownloading"
-              @click.stop="downloadFolder"
-            >
-              <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
-              <Download v-else class="h-4 w-4" />
-              Download
-            </button>
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
-              @click.stop="emit('rename', folder); showMenu = false"
-            >
-              <Pencil class="h-4 w-4" />
-              Rename
-            </button>
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"
-              @click.stop="emit('delete', folder.id); showMenu = false"
-            >
-              <Trash2 class="h-4 w-4" />
-              Delete
-            </button>
-          </div>
-        </div>
-      </Transition>
-    </div>
+          <MoreVertical class="h-4 w-4" />
+        </button>
+      </template>
+      <template #menu="{ close }">
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="isDownloading"
+          @click.stop="downloadFolder(close)"
+        >
+          <Loader2 v-if="isDownloading" class="h-4 w-4 animate-spin" />
+          <Download v-else class="h-4 w-4" />
+          Download
+        </button>
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg"
+          @click.stop="emit('rename', folder); close()"
+        >
+          <Pencil class="h-4 w-4" />
+          Rename
+        </button>
+        <button
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft"
+          @click.stop="emit('delete', folder.id); close()"
+        >
+          <Trash2 class="h-4 w-4" />
+          Delete
+        </button>
+      </template>
+    </ItemMenuDropdown>
   </div>
 </template>
