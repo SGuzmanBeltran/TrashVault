@@ -37,7 +37,7 @@ export interface StorageStats {
 }
 
 export type FileViewMode = 'grid' | 'list'
-export type AccentColor = 'cyan' | 'violet' | 'orange'
+export type AccentColor = 'cyan' | 'violet' | 'orange' | 'emerald' | 'rose' | 'custom'
 export type SortField = 'name' | 'size' | 'createdAt' | 'mimeType'
 export type SortDirection = 'asc' | 'desc'
 

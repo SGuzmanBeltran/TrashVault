@@ -61,6 +61,33 @@
     --color-accent-fg: #0a0a0f;
   }
 
+  .accent-emerald {
+    --color-accent: #2dd4bf;
+    --color-accent-soft: #2dd4bf18;
+    --color-accent-muted: #2dd4bf40;
+    --color-accent-fg: #0a0a0f;
+  }
+
+  .accent-rose {
+    --color-accent: #f472b6;
+    --color-accent-soft: #f472b618;
+    --color-accent-muted: #f472b640;
+    --color-accent-fg: #0a0a0f;
+  }
+
+  .bg-accent-rainbow {
+    background: conic-gradient(
+      from 0deg,
+      #ef4444,
+      #f97316,
+      #eab308,
+      #22c55e,
+      #3b82f6,
+      #a855f7,
+      #ef4444
+    );
+  }
+
   .animate-in {
     animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
   }

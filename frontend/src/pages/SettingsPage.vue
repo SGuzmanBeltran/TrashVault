@@ -2,8 +2,10 @@
 import { ref } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
-import { Palette, Shield, Bell, Lock, HardDrive, Eye, EyeOff } from 'lucide-vue-next'
-import type { AccentColor } from '@/domain/types'
+import { Palette, Lock, HardDrive, Eye, EyeOff } from 'lucide-vue-next'
+import { ACCENT_PRESETS } from '@/config/accentColors'
+import CustomAccentCircle from '@/components/CustomAccentCircle.vue'
+import CustomAccentEditor from '@/components/CustomAccentEditor.vue'
 import { useNotificationStore } from '@/stores/notification'
 
 const themeStore = useThemeStore()
@@ -17,12 +19,20 @@ const confirmNewPassword = ref('')
 const showOldPassword = ref(false)
 const showNewPassword = ref(false)
 const passwordError = ref('')
+const customEditorOpen = ref(false)
 
-const accents: { name: AccentColor; label: string; hex: string; description: string }[] = [
-  { name: 'cyan', label: 'Cyan', hex: '#22d3ee', description: 'Clean and modern' },
-  { name: 'violet', label: 'Violet', hex: '#a78bfa', description: 'Creative and bold' },
-  { name: 'orange', label: 'Orange', hex: '#fb923c', description: 'Warm and energetic' },
-]
+function openCustomEditor() {
+  customEditorOpen.value = true
+}
+
+function closeCustomEditor() {
+  customEditorOpen.value = false
+}
+
+function selectPreset(name: typeof ACCENT_PRESETS[number]['name']) {
+  themeStore.setAccent(name)
+  customEditorOpen.value = false
+}
 
 async function handleChangePassword() {
   passwordError.value = ''
@@ -55,7 +65,7 @@ async function handleChangePassword() {
     <div class="animate-in">
       <h1 class="text-2xl font-semibold tracking-tight text-surface-fg">Settings</h1>
       <p class="mt-1 text-sm text-surface-fg-muted">
-        Manage your account and preferences
+        Manage your preferences
       </p>
     </div>
 
@@ -68,15 +78,15 @@ async function handleChangePassword() {
       </div>
       <div class="p-6">
         <div class="mb-3 text-sm font-medium text-surface-fg">Accent Color</div>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <button
-            v-for="a in accents"
+            v-for="a in ACCENT_PRESETS"
             :key="a.name"
             class="group flex flex-col items-center gap-2 rounded-xl border p-4 transition-all duration-200"
             :class="themeStore.accent === a.name
               ? 'border-accent/40 bg-accent/5 ring-1 ring-accent/20'
               : 'border-surface-border hover:border-surface-border/80 hover:bg-surface-overlay/50'"
-            @click="themeStore.setAccent(a.name)"
+            @click="selectPreset(a.name)"
           >
             <div
               class="h-8 w-8 rounded-full transition-transform group-hover:scale-110"
@@ -87,40 +97,41 @@ async function handleChangePassword() {
               <div class="text-xs text-surface-fg-subtle">{{ a.description }}</div>
             </div>
           </button>
+
+          <button
+            type="button"
+            class="group flex flex-col items-center gap-2 rounded-xl border p-4 transition-all duration-200"
+            :class="themeStore.accent === 'custom' || customEditorOpen
+              ? 'border-accent/40 bg-accent/5 ring-1 ring-accent/20'
+              : 'border-surface-border hover:border-surface-border/80 hover:bg-surface-overlay/50'"
+            @click="openCustomEditor"
+          >
+            <CustomAccentCircle
+              :selected="themeStore.accent === 'custom'"
+              ring-offset-class="ring-offset-surface-raised"
+              @open="openCustomEditor"
+            />
+            <div class="text-center">
+              <div class="text-sm font-medium text-surface-fg">Custom</div>
+              <div class="text-xs text-surface-fg-subtle">Pick any color</div>
+            </div>
+          </button>
+        </div>
+
+        <div
+          v-if="customEditorOpen"
+          class="mt-4 rounded-xl border border-surface-border bg-surface p-4"
+        >
+          <CustomAccentEditor
+            :open="customEditorOpen"
+            @apply="closeCustomEditor"
+            @cancel="closeCustomEditor"
+          />
         </div>
       </div>
     </div>
 
     <div class="animate-in animate-stagger-2 rounded-2xl border border-surface-border bg-surface-raised">
-      <div class="border-b border-surface-border px-6 py-4">
-        <h2 class="flex items-center gap-2 text-sm font-medium text-surface-fg">
-          <Shield class="h-4 w-4 text-accent" />
-          Account
-        </h2>
-      </div>
-      <div class="divide-y divide-surface-border">
-        <div class="flex items-center justify-between px-6 py-4">
-          <div>
-            <div class="text-sm font-medium text-surface-fg">Name</div>
-            <div class="text-sm text-surface-fg-muted">{{ authStore.user?.name }}</div>
-          </div>
-          <button class="rounded-lg px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/10">
-            Edit
-          </button>
-        </div>
-        <div class="flex items-center justify-between px-6 py-4">
-          <div>
-            <div class="text-sm font-medium text-surface-fg">Email</div>
-            <div class="text-sm text-surface-fg-muted">{{ authStore.user?.email }}</div>
-          </div>
-          <button class="rounded-lg px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/10">
-            Change
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="animate-in animate-stagger-3 rounded-2xl border border-surface-border bg-surface-raised">
       <div class="border-b border-surface-border px-6 py-4">
         <h2 class="flex items-center gap-2 text-sm font-medium text-surface-fg">
           <Lock class="h-4 w-4 text-accent" />
@@ -206,7 +217,7 @@ async function handleChangePassword() {
       </div>
     </div>
 
-    <div class="animate-in animate-stagger-4 rounded-2xl border border-surface-border bg-surface-raised">
+    <div class="animate-in animate-stagger-3 rounded-2xl border border-surface-border bg-surface-raised">
       <div class="border-b border-surface-border px-6 py-4">
         <h2 class="flex items-center gap-2 text-sm font-medium text-surface-fg">
           <HardDrive class="h-4 w-4 text-accent" />
@@ -224,39 +235,6 @@ async function handleChangePassword() {
         <div class="mt-4 flex items-center gap-3">
           <button class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg transition-all hover:brightness-110">
             Upgrade Storage
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="animate-in animate-stagger-5 rounded-2xl border border-surface-border bg-surface-raised">
-      <div class="border-b border-surface-border px-6 py-4">
-        <h2 class="flex items-center gap-2 text-sm font-medium text-surface-fg">
-          <Bell class="h-4 w-4 text-accent" />
-          Notifications
-        </h2>
-      </div>
-      <div class="divide-y divide-surface-border">
-        <div class="flex items-center justify-between px-6 py-4">
-          <div>
-            <div class="text-sm font-medium text-surface-fg">Email notifications</div>
-            <div class="text-sm text-surface-fg-muted">Receive updates about your account</div>
-          </div>
-          <button
-            class="relative h-6 w-11 rounded-full bg-accent transition-colors"
-          >
-            <span class="absolute left-[22px] top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all" />
-          </button>
-        </div>
-        <div class="flex items-center justify-between px-6 py-4">
-          <div>
-            <div class="text-sm font-medium text-surface-fg">Storage alerts</div>
-            <div class="text-sm text-surface-fg-muted">Get notified when storage is running low</div>
-          </div>
-          <button
-            class="relative h-6 w-11 rounded-full bg-surface-border transition-colors"
-          >
-            <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all" />
           </button>
         </div>
       </div>

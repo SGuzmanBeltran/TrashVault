@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Bell, ChevronDown, LogOut, User, Menu, X } from 'lucide-vue-next'
+import { Search, ChevronDown, LogOut, User, Menu, X } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useFileStore } from '@/stores/files'
 import AccentPicker from '@/components/AccentPicker.vue'
@@ -89,11 +89,6 @@ function closeMobileSearch() {
       </button>
 
       <AccentPicker />
-
-      <button class="relative rounded-lg p-2 text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg">
-        <Bell class="h-4 w-4" />
-        <span class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-accent" />
-      </button>
 
       <div class="relative">
         <button

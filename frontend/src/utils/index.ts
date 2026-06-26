@@ -50,10 +50,13 @@ export function getFileColor(mimeType: string): string {
 }
 
 export function getAccentClasses(accent: AccentColor) {
-  const map = {
+  if (accent === 'custom') return ''
+  const map: Record<Exclude<AccentColor, 'custom'>, string> = {
     cyan: 'accent-cyan',
     violet: 'accent-violet',
     orange: 'accent-orange',
+    emerald: 'accent-emerald',
+    rose: 'accent-rose',
   }
   return map[accent]
 }
