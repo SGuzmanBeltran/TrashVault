@@ -16,7 +16,14 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
   if (!response.ok) {
     const text = await response.text()
-    throw new ApiError(text || `HTTP ${response.status}`, response.status)
+    let message = text || `HTTP ${response.status}`
+    try {
+      const json = JSON.parse(text) as { error?: string }
+      if (json.error) message = json.error
+    } catch {
+      // keep raw text
+    }
+    throw new ApiError(message, response.status)
   }
 
   return response.json() as Promise<T>

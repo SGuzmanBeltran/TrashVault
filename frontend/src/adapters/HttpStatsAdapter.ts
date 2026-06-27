@@ -58,11 +58,10 @@ export class HttpStatsAdapter implements StatsPort {
     return apiFetch<StorageTier[]>('/stats/tiers')
   }
 
-  async upgradeStorage(tier: StorageTierId): Promise<StorageStats> {
-    const data = await apiFetchJSON<BackendStats>('/stats/upgrade', {
+  async createStorageCheckout(tier: StorageTierId): Promise<{ checkoutUrl: string }> {
+    return apiFetchJSON<{ checkoutUrl: string }>('/billing/checkout-session', {
       method: 'POST',
       body: JSON.stringify({ tier }),
     })
-    return mapStats(data)
   }
 }

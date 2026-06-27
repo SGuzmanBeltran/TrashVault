@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useStatsStore } from '@/stores/stats'
@@ -15,10 +16,49 @@ const themeStore = useThemeStore()
 const authStore = useAuthStore()
 const statsStore = useStatsStore()
 const notify = useNotificationStore()
+const route = useRoute()
+const router = useRouter()
 
-onMounted(() => {
-  statsStore.loadStats()
+async function handleBillingReturn() {
+  const billing = route.query.billing
+  if (!billing) return
+
+  if (billing === 'success') {
+    const previousMaxBytes = statsStore.stats?.maxBytes ?? 0
+    let upgraded = false
+
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await statsStore.loadStats()
+      if ((statsStore.stats?.maxBytes ?? 0) > previousMaxBytes) {
+        upgraded = true
+        break
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+    }
+
+    notify.success(
+      upgraded
+        ? 'Payment approved! Your new storage plan is active.'
+        : 'Payment received. Your plan will activate once Stripe confirms.',
+    )
+  } else if (billing === 'cancelled') {
+    notify.info('Checkout cancelled.')
+  }
+
+  await router.replace({ query: {} })
+}
+
+onMounted(async () => {
+  await statsStore.loadStats()
+  await handleBillingReturn()
 })
+
+watch(
+  () => route.query.billing,
+  async (billing) => {
+    if (billing) await handleBillingReturn()
+  },
+)
 
 const showPasswordForm = ref(false)
 const oldPassword = ref('')
@@ -68,10 +108,6 @@ async function handleChangePassword() {
   }
 }
 
-function handleStorageUpgraded() {
-  statsStore.loadStats()
-  notify.success('Storage upgraded. Your bank account is relieved this was fake.')
-}
 </script>
 
 <template>
@@ -268,7 +304,6 @@ function handleStorageUpgraded() {
       :current-tier="statsStore.stats?.storageTier ?? 'free'"
       :current-max-bytes="statsStore.stats?.maxBytes ?? 0"
       @close="upgradeModalOpen = false"
-      @upgraded="handleStorageUpgraded"
     />
   </div>
 </template>

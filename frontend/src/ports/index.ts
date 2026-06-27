@@ -47,7 +47,7 @@ export interface AuthPort {
 export interface StatsPort {
   getStats(): Promise<StorageStats>
   listStorageTiers(): Promise<StorageTier[]>
-  upgradeStorage(tier: StorageTierId): Promise<StorageStats>
+  createStorageCheckout(tier: StorageTierId): Promise<{ checkoutUrl: string }>
 }
 
 export interface TrashPort {

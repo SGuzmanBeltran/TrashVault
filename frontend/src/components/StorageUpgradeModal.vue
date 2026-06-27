@@ -13,7 +13,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  upgraded: []
 }>()
 
 const statsService = useStatsService()
@@ -76,12 +75,10 @@ async function confirmUpgrade() {
   isUpgrading.value = true
   error.value = ''
   try {
-    await statsService.upgradeStorage(selectedTier.value.id)
-    emit('upgraded')
-    emit('close')
+    const { checkoutUrl } = await statsService.createStorageCheckout(selectedTier.value.id)
+    window.location.href = checkoutUrl
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Upgrade failed.'
-  } finally {
+    error.value = err instanceof Error ? err.message : 'Could not start checkout.'
     isUpgrading.value = false
     selectedTier.value = null
   }
@@ -139,7 +136,7 @@ watch(
                 </h4>
                 <p class="mt-1 text-sm text-surface-fg-muted">
                   You are about to unlock {{ formatBytes(selectedTier.maxBytes) }} of storage.
-                  No payment processor is attached because we assumed you would come to your senses.
+                  You'll be redirected to Stripe Checkout (test mode) to approve the subscription.
                 </p>
                 <p class="mt-2 text-xs text-surface-fg-subtle">
                   {{ selectedTier.tagline }}
@@ -166,7 +163,7 @@ watch(
               @click="confirmUpgrade"
             >
               <Loader2 v-if="isUpgrading" class="h-4 w-4 animate-spin" />
-              Yes, charge my dignity
+              Continue to Stripe
             </button>
           </div>
         </div>
@@ -219,7 +216,7 @@ watch(
           <p v-if="error" class="mt-4 text-sm text-danger">{{ error }}</p>
 
           <p class="mt-4 text-center text-xs text-surface-fg-subtle">
-            All prices are intentionally offensive. Your wallet thanks us.
+            Test card: 4242 4242 4242 4242 · any future date · any CVC
           </p>
         </div>
       </div>
