@@ -82,7 +82,7 @@ export class BillingService {
     }
 
     const stripe = this.requireStripe();
-    const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+    const event = await stripe.webhooks.constructEventAsync(rawBody, signature, webhookSecret);
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
