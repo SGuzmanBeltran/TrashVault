@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import { seedDemoUser } from './db/seedDemoUser';
 import { authPlugin } from './infrastructure/http/auth.plugin';
 import { fileRoutes, folderRoutes, statsRoutes, billingRoutes, trashRoutes, encryptionKeyRoutes, searchRoutes } from './infrastructure/http';
 import { registerFileRepository, registerFolderRepository, registerEncryptionKeyRepository, registerStorage } from './infrastructure/di/container';
@@ -19,6 +20,8 @@ registerStorage({
 registerFileRepository();
 registerFolderRepository();
 registerEncryptionKeyRepository();
+
+await seedDemoUser();
 
 const apiRoutes = new Elysia({ prefix: '/api' })
   .use(authPlugin)
