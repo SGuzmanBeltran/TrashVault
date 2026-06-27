@@ -32,7 +32,7 @@ export class StatsService {
         totalFiles: fileCount[0].count,
         totalFolders: folderCount[0].count,
         usedBytes: sizeResult[0].total,
-        maxBytes: 5 * 1024 * 1024 * 1024,
+        maxBytes: 500 * 1024 * 1024,
         recentFiles: recent,
       };
     } catch (error) {
