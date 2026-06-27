@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia';
 import { createFileService } from '../di/container';
 import { randomUUID } from 'crypto';
 import { authMacro } from './auth.plugin';
+import { assertUploadSizeWithinLimit } from '../../lib/uploadLimits';
 
 export const fileRoutes = new Elysia({ prefix: '/files' })
   .use(authMacro)
@@ -9,6 +10,7 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
     const fileService = createFileService();
     const uploadedFile = body.file;
     const buffer = await uploadedFile.arrayBuffer();
+    assertUploadSizeWithinLimit(buffer.byteLength);
     const thumbnail = body.thumbnail ? await body.thumbnail.arrayBuffer() : null;
 
     if (body.replaceFileId) {
