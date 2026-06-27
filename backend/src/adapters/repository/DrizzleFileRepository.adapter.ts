@@ -1,5 +1,5 @@
 import { FileEntity, FileRepositoryPort, NewFile } from '../../ports/repository/FileRepository.port';
-import { and, eq, isNotNull, isNull, ilike, inArray, lt } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, ilike, inArray, lt, sql } from 'drizzle-orm';
 
 import { db } from '../../db/index';
 import { files } from '../../db/schema';
@@ -139,5 +139,12 @@ export class DrizzleFileRepositoryAdapter implements FileRepositoryPort {
     if (ids.length === 0) return;
 
     await db.delete(files).where(inArray(files.id, ids));
+  }
+
+  async getTotalStorageBytes(): Promise<number> {
+    const result = await db
+      .select({ total: sql<number>`coalesce(sum(${files.size}), 0)::int` })
+      .from(files);
+    return result[0]?.total ?? 0;
   }
 }

@@ -5,6 +5,7 @@ import { wrapRepositoryError, wrapStorageError, NotFoundError, ServiceError, Sto
 import { StoragePort } from '../ports/storage/Storage.port';
 import { ThumbnailService } from './ThumbnailService.service';
 import { sanitizeItemName } from '../lib/itemName';
+import { assertGlobalStorageAvailable } from '../lib/globalStorageConfig';
 
 export interface CreateFileParams {
   id: string;
@@ -28,6 +29,8 @@ export class FileService {
   ) {}
 
   async createFile(params: CreateFileParams): Promise<FileEntity> {
+    await assertGlobalStorageAvailable(this.fileRepository, params.size);
+
     try {
       await this.storage.upload(params.buffer, params.key, params.mimeType);
     } catch (error) {
@@ -77,6 +80,9 @@ export class FileService {
       if (!file || file.trashedAt) {
         throw new NotFoundError('File not found');
       }
+
+      const additionalBytes = Math.max(0, params.size - file.size);
+      await assertGlobalStorageAvailable(this.fileRepository, additionalBytes);
 
       try {
         await this.storage.upload(params.buffer, file.key, params.mimeType);

@@ -36,4 +36,5 @@ export interface FileRepositoryPort {
   emptyTrash(userId: string): Promise<void>;
   findAll(createdBefore?: Date | null): Promise<FileEntity[]>;
   deleteMany(ids: string[]): Promise<void>;
+  getTotalStorageBytes(): Promise<number>;
 }
