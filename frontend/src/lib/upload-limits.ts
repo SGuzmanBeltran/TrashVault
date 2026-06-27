@@ -1,6 +1,7 @@
-export const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
-export const MAX_FILE_SIZE_LABEL = '20MB';
-export const MAX_UPLOAD_FILE_COUNT = 10;
+export const MAX_FILE_SIZE_MB = 50;
+export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+export const MAX_FILE_SIZE_LABEL = `${MAX_FILE_SIZE_MB}MB`;
+export const MAX_UPLOAD_FILE_COUNT = 20;
 
 export function isFileWithinSizeLimit(file: File): boolean {
   return file.size <= MAX_FILE_SIZE_BYTES;

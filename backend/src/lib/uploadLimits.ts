@@ -1,7 +1,7 @@
 import { ServiceError } from '../errors';
 
-export const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
-export const MAX_FILE_SIZE_MB = MAX_FILE_SIZE_BYTES / (1024 * 1024);
+export const MAX_FILE_SIZE_MB = 50;
+export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 // AES-GCM ciphertext is plaintext + 16-byte tag; client prepends a 12-byte IV.
 const ENCRYPTION_OVERHEAD_BYTES = 12 + 16;
