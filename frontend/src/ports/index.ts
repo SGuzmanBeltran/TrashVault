@@ -1,4 +1,4 @@
-import type { FileItem, Folder, StorageStats } from '@/domain/types'
+import type { FileItem, Folder, StorageStats, StorageTier, StorageTierId } from '@/domain/types'
 
 export interface UploadProgressCallbacks {
   onProgress: (progress: number) => void
@@ -46,6 +46,8 @@ export interface AuthPort {
 
 export interface StatsPort {
   getStats(): Promise<StorageStats>
+  listStorageTiers(): Promise<StorageTier[]>
+  upgradeStorage(tier: StorageTierId): Promise<StorageStats>
 }
 
 export interface TrashPort {

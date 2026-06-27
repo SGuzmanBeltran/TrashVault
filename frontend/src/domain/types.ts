@@ -28,11 +28,22 @@ export interface Folder {
   path?: string
 }
 
+export type StorageTierId = 'free' | 'plus' | 'pro' | 'whale'
+
+export interface StorageTier {
+  id: StorageTierId
+  name: string
+  tagline: string
+  maxBytes: number
+  priceMonthly: number
+}
+
 export interface StorageStats {
   totalFiles: number
   totalFolders: number
   usedBytes: number
   maxBytes: number
+  storageTier: StorageTierId
   recentFiles: FileItem[]
 }
 

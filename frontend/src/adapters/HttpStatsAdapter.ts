@@ -1,6 +1,6 @@
 import type { StatsPort } from '@/ports'
-import type { StorageStats, FileItem } from '@/domain/types'
-import { apiFetch } from '@/lib/api-fetch'
+import type { StorageStats, StorageTier, StorageTierId, FileItem } from '@/domain/types'
+import { apiFetch, apiFetchJSON } from '@/lib/api-fetch'
 
 interface BackendFile {
   id: string
@@ -18,6 +18,7 @@ interface BackendStats {
   totalFolders: number
   usedBytes: number
   maxBytes: number
+  storageTier: StorageTierId
   recentFiles: BackendFile[]
 }
 
@@ -36,15 +37,32 @@ function mapFile(item: BackendFile): FileItem {
   }
 }
 
+function mapStats(data: BackendStats): StorageStats {
+  return {
+    totalFiles: Number(data.totalFiles),
+    totalFolders: Number(data.totalFolders),
+    usedBytes: Number(data.usedBytes),
+    maxBytes: Number(data.maxBytes),
+    storageTier: data.storageTier,
+    recentFiles: data.recentFiles.map(mapFile),
+  }
+}
+
 export class HttpStatsAdapter implements StatsPort {
   async getStats(): Promise<StorageStats> {
     const data = await apiFetch<BackendStats>('/stats')
-    return {
-      totalFiles: Number(data.totalFiles),
-      totalFolders: Number(data.totalFolders),
-      usedBytes: Number(data.usedBytes),
-      maxBytes: Number(data.maxBytes),
-      recentFiles: data.recentFiles.map(mapFile),
-    }
+    return mapStats(data)
+  }
+
+  async listStorageTiers(): Promise<StorageTier[]> {
+    return apiFetch<StorageTier[]>('/stats/tiers')
+  }
+
+  async upgradeStorage(tier: StorageTierId): Promise<StorageStats> {
+    const data = await apiFetchJSON<BackendStats>('/stats/upgrade', {
+      method: 'POST',
+      body: JSON.stringify({ tier }),
+    })
+    return mapStats(data)
   }
 }

@@ -7,6 +7,7 @@ import { Palette, Lock, HardDrive, Eye, EyeOff } from 'lucide-vue-next'
 import { ACCENT_PRESETS } from '@/config/accentColors'
 import CustomAccentCircle from '@/components/CustomAccentCircle.vue'
 import CustomAccentEditor from '@/components/CustomAccentEditor.vue'
+import StorageUpgradeModal from '@/components/StorageUpgradeModal.vue'
 import { useNotificationStore } from '@/stores/notification'
 import { formatBytes } from '@/utils'
 
@@ -27,6 +28,7 @@ const showOldPassword = ref(false)
 const showNewPassword = ref(false)
 const passwordError = ref('')
 const customEditorOpen = ref(false)
+const upgradeModalOpen = ref(false)
 
 function openCustomEditor() {
   customEditorOpen.value = true
@@ -64,6 +66,11 @@ async function handleChangePassword() {
   } catch {
     passwordError.value = 'Failed to change password. Check your current password.'
   }
+}
+
+function handleStorageUpgraded() {
+  statsStore.loadStats()
+  notify.success('Storage upgraded. Your bank account is relieved this was fake.')
 }
 </script>
 
@@ -246,11 +253,22 @@ async function handleChangePassword() {
           />
         </div>
         <div class="mt-4 flex items-center gap-3">
-          <button class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg transition-all hover:brightness-110">
+          <button
+            class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg transition-all hover:brightness-110"
+            @click="upgradeModalOpen = true"
+          >
             Upgrade Storage
           </button>
         </div>
       </div>
     </div>
+
+    <StorageUpgradeModal
+      :open="upgradeModalOpen"
+      :current-tier="statsStore.stats?.storageTier ?? 'free'"
+      :current-max-bytes="statsStore.stats?.maxBytes ?? 0"
+      @close="upgradeModalOpen = false"
+      @upgraded="handleStorageUpgraded"
+    />
   </div>
 </template>
