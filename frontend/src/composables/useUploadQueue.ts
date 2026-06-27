@@ -1,8 +1,15 @@
 import { ref, computed } from 'vue'
 import { useFileService } from '@/services'
 import { useFileStore } from '@/stores/files'
+import { useNotificationStore } from '@/stores/notification'
 import { useUploadConflict, type UploadConflictAction } from '@/composables/useUploadConflict'
 import { uniqueFileName } from '@/lib/unique-file-name'
+import {
+  isFileWithinSizeLimit,
+  fileSizeLimitMessage,
+  MAX_UPLOAD_FILE_COUNT,
+  uploadCountLimitMessage,
+} from '@/lib/upload-limits'
 import type { FileItem } from '@/domain/types'
 import type { UploadOptions } from '@/ports'
 
@@ -27,6 +34,7 @@ let idCounter = 0
 export function useUploadQueue() {
   const fileService = useFileService()
   const fileStore = useFileStore()
+  const notify = useNotificationStore()
   const conflict = useUploadConflict()
 
   const activeCount = computed(() =>
@@ -116,15 +124,38 @@ export function useUploadQueue() {
     return id
   }
 
+  function filterUploadEntries(entries: UploadEntry[]): UploadEntry[] {
+    let accepted = entries
+
+    if (entries.length > MAX_UPLOAD_FILE_COUNT) {
+      notify.error(uploadCountLimitMessage())
+      accepted = entries.slice(0, MAX_UPLOAD_FILE_COUNT)
+    }
+
+    const valid: UploadEntry[] = []
+    for (const entry of accepted) {
+      if (!isFileWithinSizeLimit(entry.file)) {
+        notify.error(fileSizeLimitMessage(entry.file.name))
+      } else {
+        valid.push(entry)
+      }
+    }
+
+    return valid
+  }
+
   async function addUploads(entries: UploadEntry[]) {
     if (entries.length === 0) return
+
+    const validEntries = filterUploadEntries(entries)
+    if (validEntries.length === 0) return
 
     const cache = new Map<string | null, FileItem[]>()
     let batchPolicy: UploadConflictAction | null = null
 
     const conflictIndices: number[] = []
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i]!
+    for (let i = 0; i < validEntries.length; i++) {
+      const entry = validEntries[i]!
       const folderFiles = await getFolderFiles(entry.folderId, cache)
       if (folderFiles.some((f) => f.name === entry.file.name)) {
         conflictIndices.push(i)
@@ -133,7 +164,7 @@ export function useUploadQueue() {
 
     let conflictHandled = 0
 
-    for (const entry of entries) {
+    for (const entry of validEntries) {
       let { file, folderId } = entry
       const folderFiles = await getFolderFiles(folderId, cache)
       const existing = folderFiles.find((f) => f.name === file.name)

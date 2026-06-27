@@ -53,7 +53,14 @@ export function uploadWithProgress(
           reject(new Error('Invalid server response'))
         }
       } else {
-        reject(new Error(xhr.statusText || 'Upload failed'))
+        let message = xhr.statusText || 'Upload failed'
+        try {
+          const json = JSON.parse(xhr.responseText) as { error?: string }
+          if (json.error) message = json.error
+        } catch {
+          // keep status text
+        }
+        reject(new Error(message))
       }
     }
 
