@@ -14,6 +14,7 @@ import { StatsService } from '../../services/StatsService.service';
 import { BillingService } from '../../services/BillingService.service';
 import { ThumbnailService } from '../../services/ThumbnailService.service';
 import { TrashService } from '../../services/TrashService.service';
+import { DemoPurgeService } from '../../services/DemoPurgeService.service';
 import { SearchService } from '../../services/SearchService.service';
 
 let storageInstance: StoragePort | null = null;
@@ -87,6 +88,10 @@ export function createBillingService(): BillingService {
 
 export function createTrashService(): TrashService {
   return new TrashService(getFileRepository(), getFolderRepository(), getStorage());
+}
+
+export function createDemoPurgeService(): DemoPurgeService {
+  return new DemoPurgeService(getFileRepository(), getFolderRepository(), getStorage());
 }
 
 export function createEncryptionKeyService(): EncryptionKeyService {

@@ -34,4 +34,6 @@ export interface FileRepositoryPort {
   permanentDelete(id: string, userId: string): Promise<void>;
   permanentDeleteMany(ids: string[], userId: string): Promise<void>;
   emptyTrash(userId: string): Promise<void>;
+  findAll(createdBefore?: Date | null): Promise<FileEntity[]>;
+  deleteMany(ids: string[]): Promise<void>;
 }

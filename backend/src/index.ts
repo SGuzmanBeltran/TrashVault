@@ -1,5 +1,7 @@
 import 'dotenv/config';
 
+import { getDemoPurgeConfig } from './lib/demoConfig';
+import { startDemoPurgeScheduler } from './infrastructure/demoPurgeScheduler';
 import { seedDemoUser } from './db/seedDemoUser';
 import { authPlugin } from './infrastructure/http/auth.plugin';
 import { fileRoutes, folderRoutes, statsRoutes, billingRoutes, trashRoutes, encryptionKeyRoutes, searchRoutes } from './infrastructure/http';
@@ -22,6 +24,7 @@ registerFolderRepository();
 registerEncryptionKeyRepository();
 
 await seedDemoUser();
+startDemoPurgeScheduler(getDemoPurgeConfig());
 
 const apiRoutes = new Elysia({ prefix: '/api' })
   .use(authPlugin)

@@ -25,4 +25,6 @@ export interface FolderRepositoryPort {
   permanentDeleteMany(ids: string[], userId: string): Promise<void>;
   restoreManyFromTrash(ids: string[], userId: string): Promise<void>;
   emptyTrash(userId: string): Promise<void>;
+  findAll(createdBefore?: Date | null): Promise<FolderEntity[]>;
+  deleteMany(ids: string[]): Promise<void>;
 }

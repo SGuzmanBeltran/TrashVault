@@ -1,5 +1,5 @@
 import { FileEntity, FileRepositoryPort, NewFile } from '../../ports/repository/FileRepository.port';
-import { and, eq, isNotNull, isNull, ilike, inArray } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, ilike, inArray, lt } from 'drizzle-orm';
 
 import { db } from '../../db/index';
 import { files } from '../../db/schema';
@@ -126,5 +126,18 @@ export class DrizzleFileRepositoryAdapter implements FileRepositoryPort {
     await db.delete(files).where(
       and(eq(files.userId, userId), isNotNull(files.trashedAt))
     );
+  }
+
+  async findAll(createdBefore?: Date | null): Promise<FileEntity[]> {
+    if (createdBefore) {
+      return db.select().from(files).where(lt(files.createdAt, createdBefore));
+    }
+    return db.select().from(files);
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+
+    await db.delete(files).where(inArray(files.id, ids));
   }
 }
