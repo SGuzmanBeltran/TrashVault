@@ -1,16 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
+import { useStatsStore } from '@/stores/stats'
 import { Palette, Lock, HardDrive, Eye, EyeOff } from 'lucide-vue-next'
 import { ACCENT_PRESETS } from '@/config/accentColors'
 import CustomAccentCircle from '@/components/CustomAccentCircle.vue'
 import CustomAccentEditor from '@/components/CustomAccentEditor.vue'
 import { useNotificationStore } from '@/stores/notification'
+import { formatBytes } from '@/utils'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
+const statsStore = useStatsStore()
 const notify = useNotificationStore()
+
+onMounted(() => {
+  statsStore.loadStats()
+})
 
 const showPasswordForm = ref(false)
 const oldPassword = ref('')
@@ -227,10 +234,16 @@ async function handleChangePassword() {
       <div class="p-6">
         <div class="flex items-center justify-between text-sm">
           <span class="text-surface-fg-muted">Storage used</span>
-          <span class="font-medium text-surface-fg">102.7 MB of 5 GB</span>
+          <span class="font-medium text-surface-fg">
+            {{ statsStore.stats ? formatBytes(statsStore.stats.usedBytes) : '...' }} of
+            {{ statsStore.stats ? formatBytes(statsStore.stats.maxBytes) : '...' }}
+          </span>
         </div>
         <div class="mt-3 h-2 overflow-hidden rounded-full bg-surface-overlay">
-          <div class="h-full w-[2%] rounded-full bg-accent transition-all duration-500" />
+          <div
+            class="h-full rounded-full bg-accent transition-all duration-500"
+            :style="{ width: statsStore.stats ? `${(statsStore.stats.usedBytes / statsStore.stats.maxBytes) * 100}%` : '0%' }"
+          />
         </div>
         <div class="mt-4 flex items-center gap-3">
           <button class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg transition-all hover:brightness-110">
