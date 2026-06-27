@@ -70,6 +70,9 @@ export class StatsService {
         .limit(1);
 
       const currentTier = getStorageTier(userRow?.storageTier ?? 'free');
+      if (nextTier.id === currentTier.id) {
+        return this.getStats(userId);
+      }
       if (nextTier.maxBytes <= currentTier.maxBytes) {
         throw new ServiceError(400, 'You can only upgrade to a larger plan.');
       }

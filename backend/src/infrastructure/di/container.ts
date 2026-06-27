@@ -11,6 +11,7 @@ import { FolderRepositoryPort } from '../../ports/repository/FolderRepository.po
 import { FolderService } from '../../services/FolderService.service';
 import { S3StorageAdapter } from '../../adapters/storage/S3Storage.adapter';
 import { StatsService } from '../../services/StatsService.service';
+import { BillingService } from '../../services/BillingService.service';
 import { ThumbnailService } from '../../services/ThumbnailService.service';
 import { TrashService } from '../../services/TrashService.service';
 import { SearchService } from '../../services/SearchService.service';
@@ -78,6 +79,10 @@ export function createFolderService(): FolderService {
 
 export function createStatsService(): StatsService {
   return new StatsService();
+}
+
+export function createBillingService(): BillingService {
+  return new BillingService(createStatsService());
 }
 
 export function createTrashService(): TrashService {
