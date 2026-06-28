@@ -8,6 +8,7 @@ import {
   registerEncryptionKeyRepository,
   registerFileRepository,
   registerFolderRepository,
+  registerStatsRepository,
   registerStorageInstance,
   resetContainerForTests,
 } from '../../infrastructure/di/container';
@@ -34,6 +35,7 @@ export function setupIntegrationContainer(): void {
   registerFileRepository();
   registerFolderRepository();
   registerEncryptionKeyRepository();
+  registerStatsRepository();
 }
 
 export async function ensureIntegrationUser(): Promise<void> {

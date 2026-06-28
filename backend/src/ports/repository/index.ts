@@ -1,3 +1,4 @@
 export { FileRepositoryPort, NewFile, FileEntity } from './FileRepository.port';
 export { FolderRepositoryPort, NewFolder, FolderEntity } from './FolderRepository.port';
 export { EncryptionKeyRepositoryPort, NewEncryptionKey, EncryptionKey, UpdateEncryptionKey } from './EncryptionKeyRepository.port';
+export { StatsRepositoryPort, RecentFileSummary } from './StatsRepository.port';

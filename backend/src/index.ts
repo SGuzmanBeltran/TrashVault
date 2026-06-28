@@ -5,7 +5,7 @@ import { startDemoPurgeScheduler } from './infrastructure/demoPurgeScheduler';
 import { seedDemoUser } from './db/seedDemoUser';
 import { authPlugin } from './infrastructure/http/auth.plugin';
 import { fileRoutes, folderRoutes, statsRoutes, billingRoutes, trashRoutes, encryptionKeyRoutes, searchRoutes } from './infrastructure/http';
-import { registerFileRepository, registerFolderRepository, registerEncryptionKeyRepository, registerStorage } from './infrastructure/di/container';
+import { registerFileRepository, registerFolderRepository, registerEncryptionKeyRepository, registerStatsRepository, registerStorage } from './infrastructure/di/container';
 import { ServiceError } from './errors';
 
 import { Elysia } from 'elysia';
@@ -22,6 +22,7 @@ registerStorage({
 registerFileRepository();
 registerFolderRepository();
 registerEncryptionKeyRepository();
+registerStatsRepository();
 
 await seedDemoUser();
 startDemoPurgeScheduler(getDemoPurgeConfig());

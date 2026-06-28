@@ -4,6 +4,7 @@ import type { FileRepositoryPort } from '../../ports/repository/FileRepository.p
 import type { FolderRepositoryPort } from '../../ports/repository/FolderRepository.port';
 import type { StoragePort } from '../../ports/storage/Storage.port';
 import type { EncryptionKeyRepositoryPort } from '../../ports/repository/EncryptionKeyRepository.port';
+import type { StatsRepositoryPort } from '../../ports/repository/StatsRepository.port';
 
 export function makeFile(overrides: Partial<FileEntity> = {}): FileEntity {
   return {
@@ -111,6 +112,20 @@ export function createMockEncryptionKeyRepository(
       createdAt: new Date(),
       updatedAt: new Date(),
     }),
+    ...overrides,
+  };
+}
+
+export function createMockStatsRepository(
+  overrides: Partial<StatsRepositoryPort> = {},
+): StatsRepositoryPort {
+  return {
+    countFilesByUserId: async () => 0,
+    countFoldersByUserId: async () => 0,
+    sumFileBytesByUserId: async () => 0,
+    findRecentFilesByUserId: async () => [],
+    getUserStorageTier: async () => 'free',
+    updateUserStorageTier: async () => {},
     ...overrides,
   };
 }

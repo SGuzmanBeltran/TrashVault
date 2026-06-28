@@ -3,7 +3,9 @@ import { StorageConfig, StoragePort } from '../../ports/storage/Storage.port';
 import { DrizzleFileRepositoryAdapter } from '../../adapters/repository/DrizzleFileRepository.adapter';
 import { DrizzleFolderRepositoryAdapter } from '../../adapters/repository/DrizzleFolderRepository.adapter';
 import { DrizzleEncryptionKeyRepositoryAdapter } from '../../adapters/repository/DrizzleEncryptionKeyRepository.adapter';
+import { DrizzleStatsRepositoryAdapter } from '../../adapters/repository/DrizzleStatsRepository.adapter';
 import { EncryptionKeyRepositoryPort } from '../../ports/repository/EncryptionKeyRepository.port';
+import { StatsRepositoryPort } from '../../ports/repository/StatsRepository.port';
 import { EncryptionKeyService } from '../../services/EncryptionKeyService.service';
 import { FileRepositoryPort } from '../../ports/repository/FileRepository.port';
 import { FileService } from '../../services/FileService.service';
@@ -21,12 +23,14 @@ let storageInstance: StoragePort | null = null;
 let fileRepositoryInstance: FileRepositoryPort | null = null;
 let folderRepositoryInstance: FolderRepositoryPort | null = null;
 let encryptionKeyRepositoryInstance: EncryptionKeyRepositoryPort | null = null;
+let statsRepositoryInstance: StatsRepositoryPort | null = null;
 
 export function resetContainerForTests(): void {
   storageInstance = null;
   fileRepositoryInstance = null;
   folderRepositoryInstance = null;
   encryptionKeyRepositoryInstance = null;
+  statsRepositoryInstance = null;
 }
 
 export function registerStorageInstance(instance: StoragePort): void {
@@ -77,6 +81,17 @@ export function getEncryptionKeyRepository(): EncryptionKeyRepositoryPort {
   return encryptionKeyRepositoryInstance;
 }
 
+export function registerStatsRepository(): void {
+  statsRepositoryInstance = new DrizzleStatsRepositoryAdapter();
+}
+
+export function getStatsRepository(): StatsRepositoryPort {
+  if (!statsRepositoryInstance) {
+    throw new Error('StatsRepository not registered. Call registerStatsRepository first.');
+  }
+  return statsRepositoryInstance;
+}
+
 export function createThumbnailService(): ThumbnailService {
   return new ThumbnailService(getStorage());
 }
@@ -90,7 +105,7 @@ export function createFolderService(): FolderService {
 }
 
 export function createStatsService(): StatsService {
-  return new StatsService();
+  return new StatsService(getStatsRepository());
 }
 
 export function createBillingService(): BillingService {
