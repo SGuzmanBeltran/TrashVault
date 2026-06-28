@@ -22,8 +22,19 @@ let fileRepositoryInstance: FileRepositoryPort | null = null;
 let folderRepositoryInstance: FolderRepositoryPort | null = null;
 let encryptionKeyRepositoryInstance: EncryptionKeyRepositoryPort | null = null;
 
+export function resetContainerForTests(): void {
+  storageInstance = null;
+  fileRepositoryInstance = null;
+  folderRepositoryInstance = null;
+  encryptionKeyRepositoryInstance = null;
+}
+
+export function registerStorageInstance(instance: StoragePort): void {
+  storageInstance = instance;
+}
+
 export function registerStorage(config: StorageConfig): void {
-    storageInstance = new S3StorageAdapter(config);
+  storageInstance = new S3StorageAdapter(config);
 }
 
 export function getStorage(): StoragePort {
