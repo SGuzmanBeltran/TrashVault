@@ -1,45 +1,32 @@
-import type { FilePort, UploadProgressCallbacks, UploadOptions } from '@/ports'
-import type { FileItem } from '@/domain/types'
+import type { FileApiPort, EncryptedUploadPayload } from '@/ports/http/FileApi.port'
+import type { UploadProgressCallbacks } from '@/ports'
 import { apiFetch, apiFetchJSON } from '@/lib/api-fetch'
 import { uploadWithProgress } from '@/lib/xhr-upload'
-import { encryptFile, decryptFile } from '@/lib/crypto'
-import { generateThumbnail, canGenerateThumbnail } from '@/lib/thumbnail'
-import { useVaultStore } from '@/stores/vault'
+import { mapFile, type BackendFileItem } from '@/adapters/mappers'
 
-interface BackendFileItem {
-  id: string
-  name: string
-  mimeType: string
-  size: number
-  folderId: string | null
-  thumbnailKey: string | null
-  createdAt: string
-  trashedAt: string | null
-}
-
-function mapFile(item: BackendFileItem): FileItem {
-  const createdAt = new Date(item.createdAt).toISOString()
-  return {
-    id: item.id,
-    name: item.name,
-    mimeType: item.mimeType,
-    size: item.size,
-    folderId: item.folderId,
-    thumbnailKey: item.thumbnailKey ?? null,
-    createdAt,
-    updatedAt: createdAt,
-    trashedAt: item.trashedAt ? new Date(item.trashedAt).toISOString() : null,
+function buildUploadFormData(payload: EncryptedUploadPayload): FormData {
+  const formData = new FormData()
+  formData.append('file', payload.encryptedFile)
+  if (payload.folderId !== null) {
+    formData.append('folderId', payload.folderId)
   }
+  if (payload.encryptedThumbnail) {
+    formData.append('thumbnail', payload.encryptedThumbnail)
+  }
+  if (payload.replaceFileId) {
+    formData.append('replaceFileId', payload.replaceFileId)
+  }
+  return formData
 }
 
-export class HttpFileAdapter implements FilePort {
-  async listFiles(folderId: string | null): Promise<FileItem[]> {
+export class HttpFileAdapter implements FileApiPort {
+  async listFiles(folderId: string | null) {
     const query = folderId !== null ? `?folderId=${folderId}` : ''
     const items = await apiFetch<BackendFileItem[]>(`/files${query}`)
     return items.map(mapFile)
   }
 
-  async getFile(id: string): Promise<FileItem> {
+  async getFile(id: string) {
     const item = await apiFetch<BackendFileItem>(`/files/${id}`)
     return mapFile(item)
   }
@@ -48,7 +35,7 @@ export class HttpFileAdapter implements FilePort {
     await apiFetch(`/files/${id}`, { method: 'DELETE' })
   }
 
-  async moveFile(id: string, folderId: string | null): Promise<FileItem> {
+  async moveFile(id: string, folderId: string | null) {
     const item = await apiFetchJSON<BackendFileItem>(`/files/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ folderId }),
@@ -56,7 +43,7 @@ export class HttpFileAdapter implements FilePort {
     return mapFile(item)
   }
 
-  async renameFile(id: string, name: string): Promise<FileItem> {
+  async renameFile(id: string, name: string) {
     const item = await apiFetchJSON<BackendFileItem>(`/files/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ name }),
@@ -64,106 +51,34 @@ export class HttpFileAdapter implements FilePort {
     return mapFile(item)
   }
 
-  async downloadFile(id: string): Promise<{ blobUrl: string; filename: string; mimeType: string }> {
-    const meta = await apiFetch<BackendFileItem>(`/files/${id}`)
-    const vaultStore = useVaultStore()
-    if (!vaultStore.dek) throw new Error('Vault is locked')
-
+  async fetchFileBytes(id: string): Promise<ArrayBuffer> {
     const resp = await fetch(`/api/files/${id}/bytes`, { credentials: 'include' })
     if (!resp.ok) throw new Error('Failed to download file')
-    const ciphertext = await resp.arrayBuffer()
-    const plaintext = await decryptFile(ciphertext, vaultStore.dek)
-    const blob = new Blob([plaintext], { type: meta.mimeType })
-    return { blobUrl: URL.createObjectURL(blob), filename: meta.name, mimeType: meta.mimeType }
+    return resp.arrayBuffer()
   }
 
-  async getThumbnailUrl(id: string): Promise<string | null> {
-    const vaultStore = useVaultStore()
-    if (!vaultStore.dek) return null
-
-    try {
-      const resp = await fetch(`/api/files/${id}/thumbnail`, { credentials: 'include' })
-      if (!resp.ok) return null
-      const ciphertext = await resp.arrayBuffer()
-      const plaintext = await decryptFile(ciphertext, vaultStore.dek)
-      const blob = new Blob([plaintext], { type: 'image/jpeg' })
-      return URL.createObjectURL(blob)
-    } catch (error) {
-      console.warn('Failed to decrypt thumbnail:', error)
-      return null
-    }
+  async fetchThumbnailBytes(id: string): Promise<ArrayBuffer | null> {
+    const resp = await fetch(`/api/files/${id}/thumbnail`, { credentials: 'include' })
+    if (!resp.ok) return null
+    return resp.arrayBuffer()
   }
 
-  async uploadFile(file: File, folderId: string | null, options?: UploadOptions): Promise<FileItem> {
-    const vaultStore = useVaultStore()
-    if (!vaultStore.dek) throw new Error('Vault is locked')
-
-    let encryptedThumbnail: Blob | null = null
-    if (canGenerateThumbnail(file.type)) {
-      try {
-        const thumbnail = await generateThumbnail(file)
-        if (thumbnail) {
-          const thumbBuffer = await thumbnail.arrayBuffer()
-          const encryptedThumb = await encryptFile(thumbBuffer, vaultStore.dek)
-          encryptedThumbnail = new Blob([encryptedThumb])
-        }
-      } catch { /* best-effort */ }
-    }
-
-    const plaintext = await file.arrayBuffer()
-    const ciphertext = await encryptFile(plaintext, vaultStore.dek)
-    const encryptedBlob = new Blob([ciphertext], { type: file.type })
-    const encryptedFile = new File([encryptedBlob], file.name, { type: file.type })
-
-    const formData = new FormData()
-    formData.append('file', encryptedFile)
-    if (folderId !== null) {
-      formData.append('folderId', folderId)
-    }
-    if (encryptedThumbnail) {
-      formData.append('thumbnail', new File([encryptedThumbnail], 'thumb.jpg', { type: 'application/octet-stream' }))
-    }
-    if (options?.replaceFileId) {
-      formData.append('replaceFileId', options.replaceFileId)
-    }
-
+  async upload(payload: EncryptedUploadPayload) {
     const item = await apiFetch<BackendFileItem>('/files/upload', {
       method: 'POST',
-      body: formData,
+      body: buildUploadFormData(payload),
     })
     return mapFile(item)
   }
 
-  async uploadFileWithProgress(
-    file: File,
-    folderId: string | null,
-    callbacks: UploadProgressCallbacks,
-    options?: UploadOptions,
-  ): Promise<FileItem> {
-    const vaultStore = useVaultStore()
-    if (!vaultStore.dek) throw new Error('Vault is locked')
-
-    let encryptedThumbnail: Blob | null = null
-    if (canGenerateThumbnail(file.type)) {
-      try {
-        const thumbnail = await generateThumbnail(file)
-        if (thumbnail) {
-          const thumbBuffer = await thumbnail.arrayBuffer()
-          const encryptedThumb = await encryptFile(thumbBuffer, vaultStore.dek)
-          encryptedThumbnail = new Blob([encryptedThumb])
-        }
-      } catch { /* best-effort */ }
-    }
-
-    const plaintext = await file.arrayBuffer()
-    const ciphertext = await encryptFile(plaintext, vaultStore.dek)
-    const encryptedBlob = new Blob([ciphertext], { type: file.type })
-    const encryptedFile = new File([encryptedBlob], file.name, { type: file.type })
-
-    const thumbFile = encryptedThumbnail
-      ? new File([encryptedThumbnail], 'thumb.jpg', { type: 'application/octet-stream' })
-      : undefined
-    const item = await uploadWithProgress(encryptedFile, folderId, callbacks, thumbFile, options)
+  async uploadWithProgress(payload: EncryptedUploadPayload, callbacks: UploadProgressCallbacks) {
+    const item = await uploadWithProgress(
+      payload.encryptedFile,
+      payload.folderId,
+      callbacks,
+      payload.encryptedThumbnail,
+      payload.replaceFileId ? { replaceFileId: payload.replaceFileId } : undefined,
+    )
     return mapFile(item)
   }
 }

@@ -1,18 +1,5 @@
-interface BackendFileItem {
-  id: string
-  name: string
-  mimeType: string
-  size: number
-  folderId: string | null
-  thumbnailKey: string | null
-  createdAt: string
-  trashedAt: string | null
-}
-
-interface UploadProgressCallbacks {
-  onProgress: (progress: number) => void
-  signal?: AbortSignal
-}
+import type { UploadProgressCallbacks } from '@/ports'
+import type { BackendFileItem } from '@/adapters/mappers'
 
 interface UploadOptions {
   replaceFileId?: string

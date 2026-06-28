@@ -28,3 +28,6 @@ export function useEncryptionService(): EncryptionPort {
 export function useSearchService(): SearchPort {
   return container.get<SearchPort>('SearchPort')
 }
+
+export { FileService } from './FileService'
+export { FolderService } from './FolderService'

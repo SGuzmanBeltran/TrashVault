@@ -6,6 +6,9 @@ import { HttpStatsAdapter } from '@/adapters/HttpStatsAdapter'
 import { HttpTrashAdapter } from '@/adapters/HttpTrashAdapter'
 import { HttpEncryptionAdapter } from '@/adapters/HttpEncryptionAdapter'
 import { HttpSearchAdapter } from '@/adapters/HttpSearchAdapter'
+import { FileService } from '@/services/FileService'
+import { FolderService } from '@/services/FolderService'
+import { useVaultStore } from '@/stores/vault'
 
 class Container {
   private instances = new Map<string, unknown>()
@@ -23,8 +26,15 @@ class Container {
 
 export const container = new Container()
 
-container.register<FilePort>('FilePort', new HttpFileAdapter())
-container.register<FolderPort>('FolderPort', new HttpFolderAdapter())
+function getDek(): CryptoKey | null {
+  return useVaultStore().dek
+}
+
+const httpFileAdapter = new HttpFileAdapter()
+const httpFolderAdapter = new HttpFolderAdapter()
+
+container.register<FilePort>('FilePort', new FileService(httpFileAdapter, getDek))
+container.register<FolderPort>('FolderPort', new FolderService(httpFolderAdapter, getDek))
 container.register<AuthPort>('AuthPort', new HttpAuthAdapter())
 container.register<StatsPort>('StatsPort', new HttpStatsAdapter())
 container.register<TrashPort>('TrashPort', new HttpTrashAdapter())
