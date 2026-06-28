@@ -6,7 +6,8 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/dashboard',
+      name: 'landing',
+      component: () => import('@/pages/LandingPage.vue'),
     },
     {
       path: '/two-factor',

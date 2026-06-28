@@ -4,7 +4,7 @@ import { Shield, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 import { useVaultStore } from '@/stores/vault'
 
 const vaultStore = useVaultStore()
-const password = ref('')
+const password = ref('password123')
 const showPassword = ref(false)
 const error = ref('')
 const isLoading = ref(false)
@@ -14,8 +14,10 @@ async function handleUnlock() {
   isLoading.value = true
   try {
     await vaultStore.unlock(password.value)
-  } catch {
-    error.value = 'Failed to unlock vault. Wrong password?'
+  } catch (err) {
+    error.value = err instanceof Error && err.message
+      ? err.message
+      : 'Failed to unlock vault. Wrong password?'
   } finally {
     isLoading.value = false
   }
@@ -71,6 +73,10 @@ async function handleUnlock() {
               Unlock
             </template>
           </button>
+
+          <p class="mt-4 text-center text-xs text-surface-fg-subtle">
+            Demo vault password is pre-filled
+          </p>
         </form>
       </div>
     </div>

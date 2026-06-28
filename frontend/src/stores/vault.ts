@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useEncryptionService } from '@/services'
+import { ApiError } from '@/lib/api-fetch'
 import {
   deriveKek,
   generateDek,
@@ -27,7 +28,17 @@ export const useVaultStore = defineStore('vault', () => {
   async function unlock(password: string) {
     isLoading.value = true
     try {
-      const keyData = await encryptionService.getKey()
+      let keyData
+      try {
+        keyData = await encryptionService.getKey()
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          isLoading.value = false
+          return initOnRegistration(password)
+        }
+        throw error
+      }
+
       const salt = base64ToBytes(keyData.dekSalt)
       const iv = base64ToBytes(keyData.dekIv)
       const encryptedDekBytes = base64ToBytes(keyData.encryptedDek)
