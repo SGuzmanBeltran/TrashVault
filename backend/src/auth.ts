@@ -1,10 +1,12 @@
 import * as schema from "./db/auth-schema";
 
 import { betterAuth } from "better-auth";
+import { twoFactor } from "better-auth/plugins";
 import { db } from "./db";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 export const auth = betterAuth({
+	appName: "Trashvault",
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema,
@@ -12,6 +14,11 @@ export const auth = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 	},
+	plugins: [
+		twoFactor({
+			issuer: "Trashvault",
+		}),
+	],
 	trustedOrigins: ["http://localhost:5173"],
 	session: {
 		expiresIn: 60 * 60 * 24 * 7,
