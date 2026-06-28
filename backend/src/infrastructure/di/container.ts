@@ -4,8 +4,10 @@ import { DrizzleFileRepositoryAdapter } from '../../adapters/repository/DrizzleF
 import { DrizzleFolderRepositoryAdapter } from '../../adapters/repository/DrizzleFolderRepository.adapter';
 import { DrizzleEncryptionKeyRepositoryAdapter } from '../../adapters/repository/DrizzleEncryptionKeyRepository.adapter';
 import { DrizzleStatsRepositoryAdapter } from '../../adapters/repository/DrizzleStatsRepository.adapter';
+import { StripeBillingAdapter } from '../../adapters/billing/StripeBilling.adapter';
 import { EncryptionKeyRepositoryPort } from '../../ports/repository/EncryptionKeyRepository.port';
 import { StatsRepositoryPort } from '../../ports/repository/StatsRepository.port';
+import { BillingPort } from '../../ports/billing/Billing.port';
 import { EncryptionKeyService } from '../../services/EncryptionKeyService.service';
 import { FileRepositoryPort } from '../../ports/repository/FileRepository.port';
 import { FileService } from '../../services/FileService.service';
@@ -24,6 +26,7 @@ let fileRepositoryInstance: FileRepositoryPort | null = null;
 let folderRepositoryInstance: FolderRepositoryPort | null = null;
 let encryptionKeyRepositoryInstance: EncryptionKeyRepositoryPort | null = null;
 let statsRepositoryInstance: StatsRepositoryPort | null = null;
+let billingInstance: BillingPort | null = null;
 
 export function resetContainerForTests(): void {
   storageInstance = null;
@@ -31,6 +34,7 @@ export function resetContainerForTests(): void {
   folderRepositoryInstance = null;
   encryptionKeyRepositoryInstance = null;
   statsRepositoryInstance = null;
+  billingInstance = null;
 }
 
 export function registerStorageInstance(instance: StoragePort): void {
@@ -92,6 +96,21 @@ export function getStatsRepository(): StatsRepositoryPort {
   return statsRepositoryInstance;
 }
 
+export function registerBilling(): void {
+  billingInstance = new StripeBillingAdapter();
+}
+
+export function registerBillingInstance(instance: BillingPort): void {
+  billingInstance = instance;
+}
+
+export function getBilling(): BillingPort {
+  if (!billingInstance) {
+    throw new Error('Billing not registered. Call registerBilling first.');
+  }
+  return billingInstance;
+}
+
 export function createThumbnailService(): ThumbnailService {
   return new ThumbnailService(getStorage());
 }
@@ -109,7 +128,7 @@ export function createStatsService(): StatsService {
 }
 
 export function createBillingService(): BillingService {
-  return new BillingService(createStatsService());
+  return new BillingService(createStatsService(), getBilling());
 }
 
 export function createTrashService(): TrashService {

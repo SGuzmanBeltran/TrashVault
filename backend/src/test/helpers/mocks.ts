@@ -5,6 +5,7 @@ import type { FolderRepositoryPort } from '../../ports/repository/FolderReposito
 import type { StoragePort } from '../../ports/storage/Storage.port';
 import type { EncryptionKeyRepositoryPort } from '../../ports/repository/EncryptionKeyRepository.port';
 import type { StatsRepositoryPort } from '../../ports/repository/StatsRepository.port';
+import type { BillingPort } from '../../ports/billing/Billing.port';
 
 export function makeFile(overrides: Partial<FileEntity> = {}): FileEntity {
   return {
@@ -126,6 +127,14 @@ export function createMockStatsRepository(
     findRecentFilesByUserId: async () => [],
     getUserStorageTier: async () => 'free',
     updateUserStorageTier: async () => {},
+    ...overrides,
+  };
+}
+
+export function createMockBillingPort(overrides: Partial<BillingPort> = {}): BillingPort {
+  return {
+    createCheckoutSession: async () => ({ checkoutUrl: 'https://checkout.test/session' }),
+    parseWebhookEvent: async () => null,
     ...overrides,
   };
 }

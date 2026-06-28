@@ -1,95 +1,129 @@
-import { afterEach, describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { BillingService } from './BillingService.service';
-import type { StatsData } from './StatsService.service';
+import { StatsService } from './StatsService.service';
+import { createMockBillingPort, createMockStatsRepository } from '../test/helpers/mocks';
 import { ServiceError } from '../errors';
 
-class MockStatsService {
-  constructor(private stats: StatsData) {}
-
-  async getStats(): Promise<StatsData> {
-    return this.stats;
-  }
-
-  async upgradeStorage(): Promise<StatsData> {
-    return this.stats;
-  }
+function createBillingService(deps: {
+  statsRepository?: ReturnType<typeof createMockStatsRepository>;
+  billingPort?: ReturnType<typeof createMockBillingPort>;
+}) {
+  const statsService = new StatsService(deps.statsRepository ?? createMockStatsRepository());
+  return new BillingService(statsService, deps.billingPort ?? createMockBillingPort());
 }
 
-const baseStats: StatsData = {
-  totalFiles: 0,
-  totalFolders: 0,
-  usedBytes: 0,
-  maxBytes: 500 * 1024 * 1024,
-  storageTier: 'free',
-  recentFiles: [],
-};
-
 describe('BillingService', () => {
-  let stripeKey: string | undefined;
-
-  afterEach(() => {
-    if (stripeKey === undefined) {
-      delete process.env.STRIPE_SECRET_KEY;
-    } else {
-      process.env.STRIPE_SECRET_KEY = stripeKey;
-    }
-  });
-
   test('createCheckoutSession rejects free tier', async () => {
-    stripeKey = process.env.STRIPE_SECRET_KEY;
-    delete process.env.STRIPE_SECRET_KEY;
-
-    const service = new BillingService(new MockStatsService(baseStats) as never);
+    const service = createBillingService({});
     await expect(service.createCheckoutSession('user-1', 'a@b.com', 'free')).rejects.toThrow(
       'paid storage plan',
     );
   });
 
   test('createCheckoutSession rejects downgrades', async () => {
-    stripeKey = process.env.STRIPE_SECRET_KEY;
-    delete process.env.STRIPE_SECRET_KEY;
-
-    const service = new BillingService(
-      new MockStatsService({ ...baseStats, storageTier: 'pro' }) as never,
-    );
+    const service = createBillingService({
+      statsRepository: createMockStatsRepository({
+        getUserStorageTier: async () => 'pro',
+      }),
+    });
 
     await expect(service.createCheckoutSession('user-1', 'a@b.com', 'plus')).rejects.toThrow(
       'larger plan',
     );
   });
 
-  test('createCheckoutSession requires stripe configuration for paid tiers', async () => {
-    stripeKey = process.env.STRIPE_SECRET_KEY;
-    delete process.env.STRIPE_SECRET_KEY;
+  test('createCheckoutSession delegates to billing port for paid tiers', async () => {
+    let receivedParams: Record<string, unknown> | null = null;
 
-    const service = new BillingService(new MockStatsService(baseStats) as never);
-    await expect(service.createCheckoutSession('user-1', 'a@b.com', 'plus')).rejects.toThrow(
-      ServiceError,
-    );
+    const service = createBillingService({
+      billingPort: createMockBillingPort({
+        createCheckoutSession: async (params) => {
+          receivedParams = params;
+          return { checkoutUrl: 'https://checkout.stripe.test/cs_123' };
+        },
+      }),
+    });
+
+    const result = await service.createCheckoutSession('user-1', 'a@b.com', 'plus');
+
+    expect(result.checkoutUrl).toBe('https://checkout.stripe.test/cs_123');
+    expect(receivedParams).toMatchObject({
+      userId: 'user-1',
+      email: 'a@b.com',
+      tierId: 'plus',
+      tierName: 'Plus',
+      priceMonthlyCents: 4900,
+    });
+  });
+
+  test('createCheckoutSession surfaces billing configuration errors', async () => {
+    const service = createBillingService({
+      billingPort: createMockBillingPort({
+        createCheckoutSession: async () => {
+          throw new ServiceError(503, 'Billing is not configured.');
+        },
+      }),
+    });
+
     await expect(service.createCheckoutSession('user-1', 'a@b.com', 'plus')).rejects.toThrow(
       'Billing is not configured',
     );
   });
 
-  test('handleWebhook requires webhook secret', async () => {
-    stripeKey = process.env.STRIPE_SECRET_KEY;
-    process.env.STRIPE_SECRET_KEY = 'sk_test_fake';
+  test('handleWebhook upgrades storage when checkout completes', async () => {
+    let upgradedTier: string | null = null;
 
-    const previousWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    delete process.env.STRIPE_WEBHOOK_SECRET;
+    const service = createBillingService({
+      statsRepository: createMockStatsRepository({
+        getUserStorageTier: async () => 'free',
+        updateUserStorageTier: async (_userId, tierId) => {
+          upgradedTier = tierId;
+        },
+      }),
+      billingPort: createMockBillingPort({
+        parseWebhookEvent: async () => ({
+          type: 'checkout.session.completed',
+          userId: 'user-1',
+          tierId: 'plus',
+        }),
+      }),
+    });
 
-    const service = new BillingService(new MockStatsService(baseStats) as never);
+    const result = await service.handleWebhook('{}', 'sig');
 
-    try {
-      await expect(service.handleWebhook('{}', 'sig')).rejects.toThrow(
-        'Stripe webhook is not configured',
-      );
-    } finally {
-      if (previousWebhookSecret === undefined) {
-        delete process.env.STRIPE_WEBHOOK_SECRET;
-      } else {
-        process.env.STRIPE_WEBHOOK_SECRET = previousWebhookSecret;
-      }
-    }
+    expect(result).toEqual({ received: true });
+    expect(upgradedTier).toBe('plus');
+  });
+
+  test('handleWebhook ignores unrelated events', async () => {
+    let upgradeCalled = false;
+
+    const service = createBillingService({
+      statsRepository: createMockStatsRepository({
+        updateUserStorageTier: async () => {
+          upgradeCalled = true;
+        },
+      }),
+      billingPort: createMockBillingPort({
+        parseWebhookEvent: async () => null,
+      }),
+    });
+
+    await service.handleWebhook('{}', 'sig');
+    expect(upgradeCalled).toBe(false);
+  });
+
+  test('handleWebhook surfaces webhook configuration errors', async () => {
+    const service = createBillingService({
+      billingPort: createMockBillingPort({
+        parseWebhookEvent: async () => {
+          throw new ServiceError(503, 'Stripe webhook is not configured.');
+        },
+      }),
+    });
+
+    await expect(service.handleWebhook('{}', 'sig')).rejects.toThrow(
+      'Stripe webhook is not configured',
+    );
   });
 });
