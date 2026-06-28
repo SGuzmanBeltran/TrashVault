@@ -37,11 +37,18 @@ export interface FolderPort {
 }
 
 export interface AuthPort {
-  login(email: string, password: string): Promise<void>
+  login(email: string, password: string): Promise<import('@/domain/types').LoginResult>
   register(email: string, password: string, name: string): Promise<void>
   logout(): Promise<void>
   changePassword(oldPassword: string, newPassword: string): Promise<void>
   getCurrentUser(): Promise<import('@/domain/types').User | null>
+  verifyTwoFactor(
+    code: string,
+    options?: { backupCode?: boolean; trustDevice?: boolean },
+  ): Promise<void>
+  enableTwoFactor(password: string): Promise<import('@/domain/types').TwoFactorSetupResult>
+  verifyTwoFactorEnrollment(code: string): Promise<void>
+  disableTwoFactor(password: string): Promise<void>
 }
 
 export interface StatsPort {

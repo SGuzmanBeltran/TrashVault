@@ -16,6 +16,10 @@ async function handleLogin() {
   error.value = ''
   try {
     await authStore.login(email.value, password.value)
+    if (authStore.pendingTwoFactor) {
+      router.push({ name: 'two-factor' })
+      return
+    }
     router.push('/dashboard')
   } catch {
     error.value = 'Invalid credentials. Please try again.'

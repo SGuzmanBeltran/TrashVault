@@ -9,6 +9,7 @@ import { ACCENT_PRESETS } from '@/config/accentColors'
 import CustomAccentCircle from '@/components/CustomAccentCircle.vue'
 import CustomAccentEditor from '@/components/CustomAccentEditor.vue'
 import StorageUpgradeModal from '@/components/StorageUpgradeModal.vue'
+import TwoFactorSetupModal from '@/components/TwoFactorSetupModal.vue'
 import { useNotificationStore } from '@/stores/notification'
 import { formatBytes } from '@/utils'
 
@@ -69,6 +70,13 @@ const showNewPassword = ref(false)
 const passwordError = ref('')
 const customEditorOpen = ref(false)
 const upgradeModalOpen = ref(false)
+const twoFactorModalOpen = ref(false)
+const twoFactorModalMode = ref<'enable' | 'disable'>('enable')
+
+function openTwoFactorModal() {
+  twoFactorModalMode.value = authStore.user?.twoFactorEnabled ? 'disable' : 'enable'
+  twoFactorModalOpen.value = true
+}
 
 function openCustomEditor() {
   customEditorOpen.value = true
@@ -258,10 +266,22 @@ async function handleChangePassword() {
         <div class="flex items-center justify-between px-6 py-4">
           <div>
             <div class="text-sm font-medium text-surface-fg">Two-factor authentication</div>
-            <div class="text-sm text-surface-fg-muted">Add an extra layer of security</div>
+            <div class="text-sm text-surface-fg-muted">
+              {{
+                authStore.user?.twoFactorEnabled
+                  ? 'Enabled — your account requires a code at sign-in'
+                  : 'Add an extra layer of security with an authenticator app'
+              }}
+            </div>
           </div>
-          <button class="rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-surface-fg-muted transition-colors hover:bg-surface-overlay hover:text-surface-fg">
-            Enable
+          <button
+            class="rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-overlay"
+            :class="authStore.user?.twoFactorEnabled
+              ? 'text-danger hover:text-danger'
+              : 'text-surface-fg-muted hover:text-surface-fg'"
+            @click="openTwoFactorModal"
+          >
+            {{ authStore.user?.twoFactorEnabled ? 'Disable' : 'Enable' }}
           </button>
         </div>
       </div>
@@ -304,6 +324,12 @@ async function handleChangePassword() {
       :current-tier="statsStore.stats?.storageTier ?? 'free'"
       :current-max-bytes="statsStore.stats?.maxBytes ?? 0"
       @close="upgradeModalOpen = false"
+    />
+
+    <TwoFactorSetupModal
+      :open="twoFactorModalOpen"
+      :mode="twoFactorModalMode"
+      @close="twoFactorModalOpen = false"
     />
   </div>
 </template>

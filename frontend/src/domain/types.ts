@@ -4,6 +4,16 @@ export interface User {
   name: string
   avatarUrl?: string
   createdAt: string
+  twoFactorEnabled?: boolean
+}
+
+export interface TwoFactorSetupResult {
+  totpURI: string
+  backupCodes: string[]
+}
+
+export interface LoginResult {
+  needsTwoFactor: boolean
 }
 
 export interface FileItem {

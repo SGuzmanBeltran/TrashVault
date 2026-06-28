@@ -9,6 +9,12 @@ const router = createRouter({
       redirect: '/dashboard',
     },
     {
+      path: '/two-factor',
+      name: 'two-factor',
+      component: () => import('@/pages/TwoFactorPage.vue'),
+      meta: { requiresPendingTwoFactor: true },
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('@/pages/LoginPage.vue'),
@@ -68,6 +74,10 @@ router.beforeEach(async (to) => {
 
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
     return { name: 'dashboard' }
+  }
+
+  if (to.meta.requiresPendingTwoFactor && !authStore.pendingTwoFactor) {
+    return authStore.isAuthenticated ? { name: 'dashboard' } : { name: 'login' }
   }
 })
 
