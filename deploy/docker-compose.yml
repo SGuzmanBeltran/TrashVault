@@ -3,8 +3,6 @@ services:
     image: ${IMAGE_REPO}/backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: .env
-    ports:
-      - "${BACKEND_PORT:-3000}:3000"
     networks:
       - trashvault
       - infra-network
@@ -13,7 +11,7 @@ services:
     image: ${IMAGE_REPO}/frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
-      BACKEND_UPSTREAM: backend:3000
+      BACKEND_UPSTREAM: backend:${BACKEND_PORT:-3000}
     ports:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:
