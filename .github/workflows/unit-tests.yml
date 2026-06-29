@@ -18,6 +18,18 @@ jobs:
       - name: Run lint
         run: ./scripts/ci-lint.sh
 
+  typecheck:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run type-check
+        run: ./scripts/ci-typecheck.sh
+
   unit-tests:
     runs-on: ubuntu-slim
     steps:

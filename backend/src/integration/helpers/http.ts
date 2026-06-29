@@ -1,8 +1,10 @@
 import type { Elysia } from 'elysia';
 import { INTEGRATION_TEST_USER_ID } from './setup';
 
+type HandleableApp = Pick<Elysia, 'handle'>;
+
 export async function integrationRequest(
-  app: Elysia,
+  app: HandleableApp,
   path: string,
   options: RequestInit & { userId?: string } = {},
 ): Promise<Response> {

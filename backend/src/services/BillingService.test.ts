@@ -3,6 +3,7 @@ import { BillingService } from './BillingService.service';
 import { StatsService } from './StatsService.service';
 import { createMockBillingPort, createMockStatsRepository } from '../test/helpers/mocks';
 import { ServiceError } from '../errors';
+import type { CheckoutSessionParams } from '../ports/billing';
 
 function createBillingService(deps: {
   statsRepository?: ReturnType<typeof createMockStatsRepository>;
@@ -33,7 +34,7 @@ describe('BillingService', () => {
   });
 
   test('createCheckoutSession delegates to billing port for paid tiers', async () => {
-    let receivedParams: Record<string, unknown> | null = null;
+    let receivedParams: CheckoutSessionParams | null = null;
 
     const service = createBillingService({
       billingPort: createMockBillingPort({
@@ -71,13 +72,13 @@ describe('BillingService', () => {
   });
 
   test('handleWebhook upgrades storage when checkout completes', async () => {
-    let upgradedTier: string | null = null;
+    const upgradedTier: { value: string | null } = { value: null };
 
     const service = createBillingService({
       statsRepository: createMockStatsRepository({
         getUserStorageTier: async () => 'free',
         updateUserStorageTier: async (_userId, tierId) => {
-          upgradedTier = tierId;
+          upgradedTier.value = tierId;
         },
       }),
       billingPort: createMockBillingPort({
@@ -92,7 +93,7 @@ describe('BillingService', () => {
     const result = await service.handleWebhook('{}', 'sig');
 
     expect(result).toEqual({ received: true });
-    expect(upgradedTier).toBe('plus');
+    expect(upgradedTier.value).toBe('plus');
   });
 
   test('handleWebhook ignores unrelated events', async () => {

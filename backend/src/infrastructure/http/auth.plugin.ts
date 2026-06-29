@@ -51,7 +51,10 @@ export const authMacro = new Elysia({ name: 'auth-macro' })
           session: session?.session ?? null,
         };
       },
-      beforeHandle({ user, set }) {
+      beforeHandle(ctx) {
+        const { user, set } = ctx as typeof ctx & {
+          user: { id: string } | null;
+        };
         if (!user) {
           set.status = 401;
           return 'Unauthorized';

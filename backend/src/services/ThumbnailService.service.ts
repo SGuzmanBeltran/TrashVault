@@ -48,7 +48,7 @@ export class ThumbnailService {
         .rotate()
 
       const output = await image.toBuffer()
-      return output.buffer
+      return Uint8Array.from(output).buffer
     } catch (error) {
       if (error instanceof ServiceError) throw error;
       throw new ServiceError(500, 'Failed to generate image thumbnail');
@@ -78,7 +78,7 @@ export class ThumbnailService {
       )
 
       const output = await readFile(outputPath)
-      return output.buffer
+      return Uint8Array.from(output).buffer
     } catch (error) {
       if (error instanceof ServiceError) throw error;
       throw new ServiceError(500, 'Failed to generate video thumbnail');

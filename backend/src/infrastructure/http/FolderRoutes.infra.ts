@@ -16,6 +16,10 @@ export const folderRoutes = new Elysia({ prefix: '/folders' })
     });
   }, {
     auth: true,
+    body: t.Object({
+      name: t.String(),
+      parentId: t.Optional(t.Union([t.String(), t.Null()])),
+    }),
   })
   .get('/', async ({ user, query }) => {
     const folderService = createFolderService();
@@ -28,7 +32,7 @@ export const folderRoutes = new Elysia({ prefix: '/folders' })
     const result = await folderService.buildFolderZipBuffer(params.id, user!.id);
     set.headers['content-type'] = 'application/zip';
     set.headers['content-disposition'] = `attachment; filename="${result.filename}"`;
-    return new Response(result.buffer);
+    return new Response(Uint8Array.from(result.buffer));
   }, {
     auth: true,
   })

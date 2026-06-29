@@ -3,6 +3,7 @@
   "version": "1.0.50",
   "scripts": {
     "lint": "oxlint .",
+    "type-check": "tsc --noEmit -p tsconfig.json",
     "test": "bun test src/lib src/services src/errors",
     "test:unit": "bun run test",
     "test:integration": "ENABLE_INTEGRATION_TEST_AUTH=true bun test src/integration",
