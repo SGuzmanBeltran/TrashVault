@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Lint
+        run: ./scripts/ci-lint.sh
+
+      - name: Type-check
+        run: ./scripts/ci-typecheck.sh
+
+      - name: Unit tests
+        run: ./scripts/ci-unit-tests.sh
+
+      - name: Build
+        run: ./scripts/ci-build.sh
