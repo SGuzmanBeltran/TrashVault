@@ -1,0 +1,18 @@
+:80 {
+	root * /srv
+	encode gzip zstd
+
+	handle /api/* {
+		reverse_proxy {$BACKEND_UPSTREAM} {
+			header_up Host {host}
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto {header.X-Forwarded-Proto}
+			header_up X-Forwarded-For {header.X-Forwarded-For}
+		}
+	}
+
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}

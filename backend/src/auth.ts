@@ -5,6 +5,8 @@ import { twoFactor } from "better-auth/plugins";
 import { db } from "./db";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
+const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:5173";
+
 export const auth = betterAuth({
 	appName: "Trashvault",
 	database: drizzleAdapter(db, {
@@ -19,7 +21,7 @@ export const auth = betterAuth({
 			issuer: "Trashvault",
 		}),
 	],
-	trustedOrigins: ["http://localhost:5173"],
+	trustedOrigins: [frontendUrl],
 	session: {
 		expiresIn: 60 * 60 * 24 * 7,
 		updateAge: 60 * 15,
@@ -27,7 +29,7 @@ export const auth = betterAuth({
 	advanced: {
 		defaultCookieAttributes: {
 			sameSite: 'lax',
-			secure: false,
+			secure: frontendUrl.startsWith('https://'),
 		},
 	},
 });

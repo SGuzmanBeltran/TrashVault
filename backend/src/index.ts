@@ -25,9 +25,6 @@ registerEncryptionKeyRepository();
 registerStatsRepository();
 registerBilling();
 
-await seedDemoUser();
-startDemoPurgeScheduler(getDemoPurgeConfig());
-
 const apiRoutes = new Elysia({ prefix: '/api' })
   .use(authPlugin)
   .use(fileRoutes)
@@ -38,9 +35,12 @@ const apiRoutes = new Elysia({ prefix: '/api' })
   .use(encryptionKeyRoutes)
   .use(searchRoutes);
 
+const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+const port = Number(process.env.BACKEND_PORT ?? 3000);
+
 const app = new Elysia()
   .use(cors({
-    origin: 'http://localhost:5173',
+    origin: frontendUrl,
     credentials: true,
     allowedHeaders: ['content-type', 'cookie', 'authorization'],
   }))
@@ -56,7 +56,12 @@ const app = new Elysia()
   })
   .use(apiRoutes)
   .get('/', () => 'Hello Elysia')
-  .listen(3000);
+  .listen({ port, hostname: '0.0.0.0' });
+
+void seedDemoUser().catch((error) => {
+  console.error('seedDemoUser failed:', error);
+});
+startDemoPurgeScheduler(getDemoPurgeConfig());
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
