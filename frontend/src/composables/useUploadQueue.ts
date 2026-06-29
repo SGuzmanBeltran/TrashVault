@@ -165,7 +165,8 @@ export function useUploadQueue() {
     let conflictHandled = 0
 
     for (const entry of validEntries) {
-      let { file, folderId } = entry
+      let { file } = entry
+      const { folderId } = entry
       const folderFiles = await getFolderFiles(folderId, cache)
       const existing = folderFiles.find((f) => f.name === file.name)
 

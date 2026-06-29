@@ -3,7 +3,6 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { X, Download, Loader2 } from 'lucide-vue-next'
 import type { FileItem } from '@/domain/types'
 import { useFileService } from '@/services'
-import { useNotificationStore } from '@/stores/notification'
 import { formatBytes } from '@/utils'
 
 const props = defineProps<{
@@ -16,7 +15,6 @@ const emit = defineEmits<{
 }>()
 
 const fileService = useFileService()
-const notify = useNotificationStore()
 const blobUrl = ref<string | null>(null)
 const isLoading = ref(true)
 const isDownloading = ref(false)

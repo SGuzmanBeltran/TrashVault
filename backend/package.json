@@ -2,6 +2,7 @@
   "name": "backend",
   "version": "1.0.50",
   "scripts": {
+    "lint": "oxlint .",
     "test": "bun test src/lib src/services src/errors",
     "test:unit": "bun run test",
     "test:integration": "ENABLE_INTEGRATION_TEST_AUTH=true bun test src/integration",
@@ -28,6 +29,7 @@
     "@types/sharp": "^0.32.0",
     "bun-types": "1.3.13",
     "drizzle-kit": "^0.31.10",
+    "oxlint": "~1.60.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   },

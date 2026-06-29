@@ -2,7 +2,7 @@
 import { Check, AlertCircle, Info, X } from 'lucide-vue-next'
 import type { Notification, NotificationType } from '@/stores/notification'
 
-const props = defineProps<{
+defineProps<{
   notification: Notification
 }>()
 

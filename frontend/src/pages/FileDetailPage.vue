@@ -39,8 +39,6 @@ const downloadUrl = ref<string | null>(null)
 const isDragging = ref(false)
 const isDownloading = ref(false)
 
-const isImageLike = computed(() => file.value?.mimeType.startsWith('image/') ?? false)
-const isVideoLike = computed(() => file.value?.mimeType.startsWith('video/') ?? false)
 const showThumbnail = computed(
   () => !!thumbnailUrl.value && !thumbnailError.value,
 )

@@ -1,4 +1,4 @@
-name: Unit tests
+name: CI
 
 on:
   push:
@@ -6,6 +6,18 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run lint
+        run: ./scripts/ci-lint.sh
+
   unit-tests:
     runs-on: ubuntu-slim
     steps:

@@ -91,12 +91,6 @@ const showContentLoading = computed(
   () => fileStore.isLoading || (fileStore.isSearchActive && fileStore.isSearching),
 )
 
-const hasVisibleItems = computed(
-  () =>
-    fileStore.allItems.folders.length > 0 ||
-    fileStore.allItems.files.length > 0,
-)
-
 const folderGridClass = computed(() =>
   viewMode.value === 'list'
     ? 'space-y-1'

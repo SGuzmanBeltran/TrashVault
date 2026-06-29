@@ -257,5 +257,5 @@ export class FolderService {
 }
 
 function sanitizeZipSegment(name: string): string {
-  return name.replace(/[/\\]/g, '_').replace(/\0/g, '') || 'untitled';
+  return name.replace(/[/\\]/g, '_').split('\0').join('') || 'untitled';
 }
