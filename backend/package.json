@@ -3,6 +3,7 @@
   "version": "1.0.50",
   "scripts": {
     "test": "bun test src/lib src/services src/errors",
+    "test:unit": "bun run test",
     "test:integration": "ENABLE_INTEGRATION_TEST_AUTH=true bun test src/integration",
     "test:all": "bun run test && bun run test:integration",
     "dev": "bun run --watch src/index.ts"
