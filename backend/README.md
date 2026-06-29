@@ -1,15 +1,23 @@
-# Elysia with Bun runtime
+# TrashVault — Backend
 
-## Getting Started
-To get started with this template, simply paste this command into your terminal:
+Elysia + Bun REST API. See the [root README](../README.md) for full documentation.
+
+## Quick start
+
 ```bash
-bun create elysia ./elysia-example
+bun install
+bunx drizzle-kit migrate
+bun run dev   # http://localhost:3000
 ```
 
-## Development
-To start the development server run:
-```bash
-bun run dev
-```
+## Scripts
 
-Open http://localhost:3000/ with your browser to see the result.
+| Command | Description |
+|---|---|
+| `bun run dev` | Dev server with hot reload |
+| `bun run test` | Unit tests |
+| `bun run test:integration` | Integration tests (needs DB + R2 env) |
+| `bun run lint` | oxlint |
+| `bun run typecheck` | tsc |
+| `bunx drizzle-kit generate` | Generate migrations |
+| `bunx drizzle-kit migrate` | Apply migrations |
